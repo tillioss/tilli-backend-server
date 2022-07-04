@@ -2,8 +2,6 @@ package com.teqbahn.actors.analytics.accumulator
 
 import akka.actor.SupervisorStrategy.Stop
 import akka.actor.{Actor, ActorContext, ActorRef, PoisonPill, ReceiveTimeout}
-import akka.cluster.sharding.ShardRegion
-import akka.cluster.sharding.ShardRegion.Passivate
 import com.teqbahn.bootstrap.StarterMain.redisCommands
 import com.teqbahn.caseclasses.AddToAccumulationWrapper
 import com.teqbahn.global.ZiRedisCons
@@ -28,12 +26,10 @@ class LanguageAccumulators extends Actor {
       }
       redisCommands.incr(index)
 
-    case ReceiveTimeout => context.parent ! Passivate(stopMessage = Stop)
+    case ReceiveTimeout =>  context.stop(self)
   }
 
-  private def passivate(context: ActorContext, self: ActorRef): Unit = {
-    context.parent ! (new ShardRegion.Passivate(PoisonPill.getInstance), self)
-  }
+
 
 
 }

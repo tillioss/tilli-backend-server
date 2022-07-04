@@ -2,8 +2,6 @@ package com.teqbahn.actors.analytics.accumulator.time
 
 import akka.actor.SupervisorStrategy.Stop
 import akka.actor.{Actor, ActorContext, ActorRef, PoisonPill, ReceiveTimeout}
-import akka.cluster.sharding.ShardRegion
-import akka.cluster.sharding.ShardRegion.Passivate
 import com.teqbahn.bootstrap.StarterMain.redisCommands
 import com.teqbahn.caseclasses.{AddToAccumulationWrapper, AddUserAttemptAccumulationWrapper}
 import com.teqbahn.global.ZiRedisCons
@@ -70,11 +68,9 @@ class DayAccumulators extends Actor {
       }
 
 
-    case ReceiveTimeout => context.parent ! Passivate(stopMessage = Stop)
+    case ReceiveTimeout => context.stop(self)
   }
 
-  private def passivate(context: ActorContext, self: ActorRef): Unit = {
-    context.parent ! (new ShardRegion.Passivate(PoisonPill.getInstance), self)
-  }
+
 
 }

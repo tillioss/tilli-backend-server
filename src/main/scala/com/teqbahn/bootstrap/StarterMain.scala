@@ -2,9 +2,7 @@ package com.teqbahn.bootstrap
 
 import java.io.{File}
 import akka.actor.{ActorRef, ActorSystem, Props}
-import akka.cluster.Cluster
 import akka.http.scaladsl.{Http}
-import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
 import akka.stream.{ActorMaterializer}
 import com.typesafe.config.{Config, ConfigFactory}
@@ -99,18 +97,14 @@ object StarterMain {
 
     //    createDir(fileSystemPath + projectName)
 
-    implicit val actorSystem = ActorSystem("tilli", setupClusterNodeConfig(akkaPort))
+    implicit val actorSystem = ActorSystem("tilli", setupNodeConfig(akkaPort))
     implicit val materializer = ActorMaterializer()
     implicit val executionContext = actorSystem.dispatcher
 
-    implicit val cluster = Cluster(actorSystem)
 
     AkkaManagement(actorSystem).start()
-    ClusterBootstrap(actorSystem).start()
 
-    Cluster(actorSystem).registerOnMemberUp({
-      println("Cluster is up!" + akkaManagementHostName)
-    })
+
     import io.lettuce.core.RedisClient
     val client: RedisClient = RedisClient.create("redis://" + redisHostPath)
     val connection: StatefulRedisConnection[String, String] = client.connect()
@@ -138,7 +132,7 @@ object StarterMain {
 
   }
 
-  def setupClusterNodeConfig(port: Int): Config = ConfigFactory
+  def setupNodeConfig(port: Int): Config = ConfigFactory
     .parseString(
       "akka.remote.netty.tcp.port=" + port + "\n"
         + "akka.remote.netty.tcp.hostname=" + akkaManagementHostName + "\n"

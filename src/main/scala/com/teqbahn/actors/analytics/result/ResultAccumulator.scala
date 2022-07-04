@@ -1,7 +1,6 @@
 package com.teqbahn.actors.analytics.result
 
 import akka.actor.{Actor, PoisonPill}
-import akka.cluster.sharding.ShardRegion
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.teqbahn.bootstrap.StarterMain
 import com.teqbahn.bootstrap.StarterMain.redisCommands
@@ -88,7 +87,8 @@ class ResultAccumulator extends Actor {
       responseObj.set("ageBased", ageBasedArrayNode);
 
       sender() ! FetchAnalyticsResponse(responseObj.toString)
-      context.parent ! (new ShardRegion.Passivate(PoisonPill.getInstance), self)
+      context.stop(self)
+
 
     case request: FetchFilterUserAttemptAnalyticsRequest =>
 
@@ -147,7 +147,7 @@ class ResultAccumulator extends Actor {
       responseObj.set("dateBasedUniqueUserAttempt", dateBasedUniqueUserAttemptArrayNode);
 
       sender() ! FetchFilterUserAttemptAnalyticsResponse(responseObj.toString)
-      context.parent ! (new ShardRegion.Passivate(PoisonPill.getInstance), self)
+      context.stop(self)
 
 
     case request: FetchFilterAnalyticsRequest =>
@@ -324,7 +324,7 @@ class ResultAccumulator extends Actor {
       responseObj.set("dateBasedLanguage", dateBasedLanguageFilterArrayNode);
 
       sender() ! FetchFilterAnalyticsResponse(responseObj.toString)
-      context.parent ! (new ShardRegion.Passivate(PoisonPill.getInstance), self)
+      context.stop(self)
   }
 
   def getOptValue(data: Option[String]): Tuple2[Boolean, String] = {

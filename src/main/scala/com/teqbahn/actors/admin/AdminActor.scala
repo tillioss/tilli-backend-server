@@ -4,8 +4,6 @@ import java.io.File
 import java.util.{Date, Random, UUID}
 import akka.actor.SupervisorStrategy.Stop
 import akka.actor.{Actor, ActorContext, ActorRef, PoisonPill, Props, ReceiveTimeout}
-import akka.cluster.sharding.{ShardRegion}
-import akka.cluster.sharding.ShardRegion.Passivate
 import com.teqbahn.bootstrap.StarterMain
 import com.teqbahn.caseclasses._
 import com.teqbahn.global.{Encryption, GlobalConstants, GlobalMessageConstants, ZiRedisCons}
@@ -671,8 +669,7 @@ class AdminActor() extends Actor {
 
         var attemptCount = updateLevelAttemptRequest.attemptCount
 
-        /*      if(redisCommands.hexists(ZiRedisCons.USER_GAME_ATTEMPT+"_"+updateLevelAttemptRequest.userId, updateLevelAttemptRequest.levelId)) {
-        var existAttemptCount = redisCommands.hget(ZiRedisCons.USER_GAME_ATTEMPT+"_"+updateLevelAttemptRequest.userId, updateLevelAttemptRequest.levelId).toInt*/
+
         var existAttemptCount = attemptCount - 1
         if (redisCommands.hexists(ZiRedisCons.USER_GAME_ATTEMPT_JSON + "_" + updateLevelAttemptRequest.userId + "_" + updateLevelAttemptRequest.levelId, existAttemptCount.toString)) {
           var attemptJsonStr = redisCommands.hget(ZiRedisCons.USER_GAME_ATTEMPT_JSON + "_" + updateLevelAttemptRequest.userId + "_" + updateLevelAttemptRequest.levelId, existAttemptCount.toString)
@@ -684,27 +681,7 @@ class AdminActor() extends Actor {
         /*     attemptCount = existAttemptCount + 1
       }*/
         redisCommands.hset(ZiRedisCons.USER_GAME_ATTEMPT + "_" + updateLevelAttemptRequest.userId, updateLevelAttemptRequest.levelId, attemptCount.toString)
-        val createdAt = new Timestamp((new Date).getTime).getTime
 
-
-        /*    var levelAttempt = LevelAttempt(updateLevelAttemptRequest.leveljson, updateLevelAttemptRequest.levelPoints, Option(createdAt), Option(updateLevelAttemptRequest.ip), Option(updateLevelAttemptRequest.deviceInfo), Option(updateLevelAttemptRequest.userTime),Option(updateLevelAttemptRequest.landingFrom))
-
-
-          redisCommands.hset(ZiRedisCons.USER_GAME_ATTEMPT_JSON + "_" + updateLevelAttemptRequest.userId + "_" + updateLevelAttemptRequest.levelId, attemptCount.toString, write(levelAttempt))
-        var keyStr= updateLevelAttemptRequest.userId + "_" + updateLevelAttemptRequest.levelId+"_"+attemptCount.toString
-          redisCommands.lpush(ZiRedisCons.USER_ALL_GAME_ATTEMPT_LIST,keyStr)
-          if(!updateLevelAttemptRequest.landingFrom.isEmpty)
-            {
-
-              redisCommands.lpush(ZiRedisCons.USER_TYPE_BASED_ALL_GAME_ATTEMPT_LIST+"_"+updateLevelAttemptRequest.landingFrom.toLowerCase(),keyStr)
-
-            }
-
-
-
-
-          ClusterSharding.get(this.context.system).shardRegion("actor-accumulator") ! AddUserAttemptAccumulationRequest("userAttempt",updateLevelAttemptRequest.userId, createdAt )
-  */
 
         if (attemptCount == 1) {
           totalPoint = userPoint + updateLevelAttemptRequest.levelPoints
@@ -1153,7 +1130,7 @@ class AdminActor() extends Actor {
         }
       }
 
-    case ReceiveTimeout => context.parent ! Passivate(stopMessage = Stop)
+    case ReceiveTimeout =>  context.stop(self)
   }
   
   def randomString(len: Int): String = {
