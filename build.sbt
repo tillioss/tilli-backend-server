@@ -19,28 +19,18 @@ val logbackVersion = "1.2.3"
 
 libraryDependencies ++=Seq(
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
+  "com.typesafe.akka" %% "akka-stream" % akkaVersion,
   "com.typesafe.akka" %% "akka-http-core" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http-xml" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
   "ch.qos.logback" % "logback-classic" % logbackVersion,
-  "com.typesafe.akka" %% "akka-cluster" % akkaVersion,
-  "com.typesafe.akka" %% "akka-cluster-sharding" % akkaVersion,
-  "com.lightbend.akka.discovery" %% "akka-discovery-kubernetes-api" % akkaManagementVersion,
-  "com.lightbend.akka.management" %% "akka-management" % akkaManagementVersion,
-  "com.lightbend.akka.management" %% "akka-management-cluster-http" % akkaManagementVersion,
-  "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % akkaManagementVersion,
-  "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
-  "com.typesafe.akka" %% "akka-cluster-tools" % akkaVersion,
   "ch.megard" %% "akka-http-cors" % "0.4.1",
-
+  "com.typesafe.akka" %% "akka-actor" % akkaVersion,
   "com.typesafe.akka" %% "akka-http-jackson" % akkaHttpVersion,
   "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion,
   "org.json4s" %% "json4s-native" % "3.6.7",
   "org.json4s" %% "json4s-jackson" % "3.6.7",
-
-  "com.lightbend.akka" %% "akka-stream-alpakka-s3" % "1.1.2",
-
 
   "commons-io" % "commons-io" % "2.6",
   "commons-lang" % "commons-lang" % "2.6",
@@ -52,7 +42,9 @@ libraryDependencies ++=Seq(
   "org.scalaj" %% "scalaj-http" % "2.4.2",
   "io.lettuce" % "lettuce-core" % "6.0.0.M1",
 
-  "org.rocksdb" % "rocksdbjni" % "6.11.4"
+  "org.rocksdb" % "rocksdbjni" % "6.11.4",
+  "joda-time" % "joda-time" % "2.10.14",
+  "commons-codec" % "commons-codec" % "1.11",
 
 )
 

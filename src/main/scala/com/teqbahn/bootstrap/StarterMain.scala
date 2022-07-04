@@ -3,7 +3,7 @@ package com.teqbahn.bootstrap
 import java.io.{File}
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.{Http}
-import akka.management.scaladsl.AkkaManagement
+//import akka.management.scaladsl.AkkaManagement
 import akka.stream.{ActorMaterializer}
 import com.typesafe.config.{Config, ConfigFactory}
 import com.teqbahn.actors.admin.AdminActor
@@ -97,12 +97,13 @@ object StarterMain {
 
     //    createDir(fileSystemPath + projectName)
 
-    implicit val actorSystem = ActorSystem("tilli", setupNodeConfig(akkaPort))
+    //implicit val actorSystem = ActorSystem("tilli", setupNodeConfig(akkaPort))
+    implicit val actorSystem = ActorSystem("tilli")
     implicit val materializer = ActorMaterializer()
     implicit val executionContext = actorSystem.dispatcher
 
 
-    AkkaManagement(actorSystem).start()
+   // AkkaManagement(actorSystem).start()
 
 
     import io.lettuce.core.RedisClient
@@ -137,13 +138,12 @@ object StarterMain {
       "akka.remote.netty.tcp.port=" + port + "\n"
         + "akka.remote.netty.tcp.hostname=" + akkaManagementHostName + "\n"
         + "akka.remote.netty.tcp.port=" + akkaPort + "\n"
-        + "akka.cluster.roles=[\"worker\"]  \n"
-        + "akka.management.http.port=" + akkaManagementPort + "\n"
-        + "akka.management.http.bind-port=" + akkaManagementPort + "\n"
+      //  + "akka.management.http.port=" + akkaManagementPort + "\n"
+       // + "akka.management.http.bind-port=" + akkaManagementPort + "\n"
         + "akka.remote.artery.canonical.hostname=" + akkaManagementHostName + "\n"
-        + "akka.management.http.hostname=" + akkaManagementHostName + "\n"
+       // + "akka.management.http.hostname=" + akkaManagementHostName + "\n"
         + "akka.remote.artery.canonical.port=" + port + "\n"
-        + "akka.http.server.preview.enable-http2 = on"
+      //  + "akka.http.server.preview.enable-http2 = on"
     )
     .withFallback(ConfigFactory.load(confFile))
 
