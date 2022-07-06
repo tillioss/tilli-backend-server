@@ -71,7 +71,7 @@ object StarterMain {
       fromMail = args(5)
       fromMailPassword = args(6)
       SALT = args(7)
-      fileSystemPath = "/efs/tilli/"
+      // fileSystemPath = "/efs/tilli/"
     } else {
       confFile = "application_live.conf"
       akkaPort = System.getenv("akkaPort").toInt
