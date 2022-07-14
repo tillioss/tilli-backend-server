@@ -93,7 +93,7 @@ object AkkaHttpConnector {
                           var temp = System.getProperty("java.io.tmpdir")
                           var pb: BodyPartEntity = bodyPart.getEntity()
 
-                          temp = StarterMain.fileSystemPath + StarterMain.projectName
+                          temp = StarterMain.fileSystemPath 
                           temp = temp + "/" + dir1
                           StarterMain.createDir(temp)
                           temp += "/" + dir2
@@ -108,7 +108,7 @@ object AkkaHttpConnector {
 
                           val filePath = temp + "/" + fileName
 
-                          val intermediateDir = StarterMain.fileSystemPath + StarterMain.projectName + "/intermediates"
+                          val intermediateDir = StarterMain.fileSystemPath  + "/intermediates"
                           StarterMain.createDir(intermediateDir)
                           val srcConversionPath = intermediateDir + "/" + fileName
                           val fileOutput = new FileOutputStream(srcConversionPath)
