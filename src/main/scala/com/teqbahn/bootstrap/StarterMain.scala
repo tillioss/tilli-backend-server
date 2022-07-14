@@ -31,14 +31,14 @@ object StarterMain {
 
   var projectName = "tilli"
   var fileSystemType = "Redis" // All
-  var fileSystemPath = "/efs/"
+  var fileSystemPath = ""
   var projectPrefix = "tilli-api"
   var frontEndPath = "https://teqbahn.com/tilli-web/"
   var redisHostPath = "127.0.0.1:6379"
 
   var fromMail = ""
   var fromMailPassword = ""
-  var SALT = "123Test"
+  var SALT = "Test@123" //replace your encryption key
 
   var adminSupervisorActorRef: ActorRef = null
   var mailActorRef: ActorRef = null
@@ -70,6 +70,7 @@ object StarterMain {
       redisHostPath = args(4)
       fromMail = args(5)
       fromMailPassword = args(6)
+      fileSystemPath = args(7)
     
       // fileSystemPath = "/efs/tilli/"
     } else {
@@ -171,7 +172,7 @@ object StarterMain {
 
 
   def getImages(subDir: String, fileName: String): File = {
-    val path1 = StarterMain.fileSystemPath + projectName + "/" + subDir + "/" + fileName
+    val path1 = StarterMain.fileSystemPath + "/" + subDir + "/" + fileName
     val file = new File(path1)
     return file
   }
