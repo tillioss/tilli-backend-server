@@ -38,7 +38,7 @@ object StarterMain {
 
   var fromMail = ""
   var fromMailPassword = ""
-  var SALT = ""
+  var SALT = "123Test"
 
   var adminSupervisorActorRef: ActorRef = null
   var mailActorRef: ActorRef = null
@@ -70,7 +70,7 @@ object StarterMain {
       redisHostPath = args(4)
       fromMail = args(5)
       fromMailPassword = args(6)
-      SALT = args(7)
+    
       // fileSystemPath = "/efs/tilli/"
     } else {
       confFile = "application_live.conf"
@@ -90,7 +90,6 @@ object StarterMain {
       redisHostPath = System.getenv("redisHostPath")
       fromMail = System.getenv("fromMail")
       fromMailPassword = System.getenv("fromMailPassword")
-      SALT = System.getenv("SALT")
     }
 
     printEnv()
