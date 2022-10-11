@@ -6,6 +6,9 @@ case class AdminLogin(name: String, password: String, adminType: String, loginId
 
 case class CreateUserRequest(emailId: String, password: String, name: String, ageOfChild: String, nameOfChild: String, passcode: String, sessionId: String, zipcode: Option[String] = None) extends Request
 
+case class CreateGameUserRequest(emailId:String, password: String,nameOfChild:String, ageOfChild: String,schoolName: String, className: String,genderOfChild:String,passcode:String,sessionId: String ) extends Request
+
+
 case class CreateDemoUserRequest(sessionId: String, demoUserId: String, userType: Option[String] = None, ip: Option[String] = None, deviceInfo: Option[String] = None) extends Request
 
 case class CreateDemo2UserRequest(sessionId: String, age: String, gender: String, demoUserId: String, userType: Option[String] = None, ip: Option[String] = None, deviceInfo: Option[String] = None, language: Option[String] = None) extends Request

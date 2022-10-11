@@ -250,6 +250,26 @@ object AkkaHttpConnector {
               }
             }
           },
+           path(projectPrefix / "createGameUser") {
+             post {
+              entity(as[String]) { data =>
+             val start  = System.currentTimeMillis
+             implicit val formats = DefaultFormats
+             val jValue = parse(data)
+             val createGameUserRequest = jValue.extract[CreateGameUserRequest]
+             var response: CreateGameUserResponse = null
+             val future = Patterns.ask(StarterMain.adminSupervisorActorRef, createGameUserRequest, timeout)
+             try {
+                  val createGameUserResponse = Await.result(future, timeout.duration).asInstanceOf[CreateGameUserResponse]
+                  response = createGameUserResponse
+                } catch {
+                  case e: Exception =>
+                    e.printStackTrace()
+                }
+              complete(write(response))
+              }
+            }
+            },
           path(projectPrefix / "createDemoUser") {
             post {
               entity(as[String]) { data =>

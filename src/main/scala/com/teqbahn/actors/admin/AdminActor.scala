@@ -99,6 +99,24 @@ class AdminActor() extends Actor {
       sender ! CreateUserResponse(GlobalMessageConstants.SUCCESS)
 
 
+     case request: CreateGameUserRequest =>
+      var userId = getID()
+      var status = GlobalConstants.ACTIVE
+      var userEmailId = request.emailId.toLowerCase.trim
+      val createdAt = new Timestamp((new Date).getTime).getTime
+      var response  = GlobalMessageConstants.FAILURE
+       if(!redisCommands.hexists(ZiRedisCons.USER_LOGIN_CREDENTIALS, userEmailId)) {
+        var user = User(userId = userId, emailId = userEmailId, name = "", password = request.password, nameOfChild = request.nameOfChild, ageOfChild = request.ageOfChild, passcode = request.passcode, status = status, genderOfChild = Option(request.genderOfChild), createdAt = Option(createdAt), schoolName = Option(request.schoolName), className = Option(request.className))
+        redisCommands.hset(ZiRedisCons.USER_JSON, userId, write(user))
+        var userloginCredentials = UserLoginCredential(userId, status, request.password)
+        redisCommands.hset(ZiRedisCons.USER_LOGIN_CREDENTIALS, userEmailId, write(userloginCredentials))
+        redisCommands.lpush(ZiRedisCons.ADMIN_userIdsList, userId)
+        // getUserActorRef() ! InitUsersActorRequest(userId)
+        response  = GlobalMessageConstants.SUCCESS
+      }
+    
+     sender ! CreateGameUserResponse(response)
+
     case createDemoUserRequest: CreateDemoUserRequest =>
 
       if (createDemoUserRequest.demoUserId != null && !createDemoUserRequest.demoUserId.isEmpty && redisCommands.hexists(ZiRedisCons.USER_JSON, createDemoUserRequest.demoUserId)) {
@@ -1142,6 +1160,11 @@ class AdminActor() extends Actor {
     }
     sb.toString
   }
+
+   def getID(): String = {
+    UUID.randomUUID.toString
+  }
+
 
 }
 
