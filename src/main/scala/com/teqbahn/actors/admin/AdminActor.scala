@@ -100,7 +100,7 @@ class AdminActor() extends Actor {
 
 
      case request: CreateGameUserRequest =>
-      var userId = getID()
+      var userId = ZiFunctions.getId()
       var status = GlobalConstants.ACTIVE
       var userEmailId = request.emailId.toLowerCase.trim
       val createdAt = new Timestamp((new Date).getTime).getTime
@@ -1161,9 +1161,7 @@ class AdminActor() extends Actor {
     sb.toString
   }
 
-   def getID(): String = {
-    UUID.randomUUID.toString
-  }
+   
 
 
 }
