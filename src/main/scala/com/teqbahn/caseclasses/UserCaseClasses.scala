@@ -1,6 +1,6 @@
 package com.teqbahn.caseclasses
 
-case class User(userId: String, emailId: String, name: String, password: String, nameOfChild: String, ageOfChild: String, passcode: String, status: String, lastLogin: Option[Long] = None, lastLogout: Option[Long] = None, zipcode: Option[String] = None, genderOfChild: Option[String] = None, createdAt: Option[Long] = None, ip: Option[String] = None, deviceInfo: Option[String] = None) extends Request
+case class User(userId: String, emailId: String, name: String, password: String, nameOfChild: String, ageOfChild: String, passcode: String, status: String, lastLogin: Option[Long] = None, lastLogout: Option[Long] = None, zipcode: Option[String] = None, genderOfChild: Option[String] = None, createdAt: Option[Long] = None, ip: Option[String] = None, deviceInfo: Option[String] = None,schoolName: Option[String] = None, className: Option[String] = None) extends Request
 
 case class UserLoginCredential(userId: String, status: String, password: String) extends Request
 

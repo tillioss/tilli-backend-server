@@ -9,6 +9,7 @@ case class FetchFilterAnalyticsResponse(response: String) extends Response
 case class FetchFilterUserAttemptAnalyticsResponse(response: String) extends Response
 
 case class CreateUserResponse(response: String) extends Response
+case class CreateGameUserResponse(response: String) extends Response
 
 case class CreateDemoUserResponse(sessionId: String, response: String, id: String, email: String, name: String, isFirstLogin: Boolean, responseCode: String, nameOfChild: String, ageOfChild: String, genderOfChild: String) extends Response
 
