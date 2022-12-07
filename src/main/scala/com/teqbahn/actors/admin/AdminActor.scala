@@ -475,7 +475,7 @@ class AdminActor() extends Actor {
 
     case addThemeRequest: AddThemeRequest =>
       var themeId = ZiFunctions.getId()
-      var themeData = Theme(themeId, addThemeRequest.name, addThemeRequest.image, Option(addThemeRequest.themeType))
+      var themeData = Theme(themeId, addThemeRequest.name, addThemeRequest.image, Option(addThemeRequest.themeType),addThemeRequest.gameFile)
       redisCommands.hset(ZiRedisCons.THEME_JSON, themeId, write(themeData))
       sender ! AddThemeResponse(GlobalMessageConstants.SUCCESS)
 
@@ -487,6 +487,7 @@ class AdminActor() extends Actor {
         var themeName = themeData.name
         var themeImage = themeData.image
         var themeType = themeData.themeType
+         var gameFile = themeData.gameFile
         if (updateThemeRequest.name != null && !updateThemeRequest.name.isEmpty) {
           themeName = updateThemeRequest.name
         }
@@ -497,7 +498,10 @@ class AdminActor() extends Actor {
         if (updateThemeRequest.themeType != null) {
           themeType = Option(updateThemeRequest.themeType)
         }
-        var themeDataNew = themeData.copy(name = themeName, image = themeImage, themeType = themeType)
+        if (updateThemeRequest.gameFile != null) {
+          gameFile = updateThemeRequest.gameFile
+        }
+        var themeDataNew = themeData.copy(name = themeName, image = themeImage, themeType = themeType,gameFile = gameFile)
         redisCommands.hset(ZiRedisCons.THEME_JSON, updateThemeRequest.themeId, write(themeDataNew))
         sender ! UpdateThemeResponse(GlobalMessageConstants.SUCCESS)
 
