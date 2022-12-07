@@ -35,9 +35,9 @@ case class GetGameLevelsRequest(levelId: String, sessionId: String) extends Requ
 
 case class DeleteGameLevelsRequest(levelId: String, sessionId: String) extends Request
 
-case class AddThemeRequest(name: String, sessionId: String, image: GameFileObject, themeType: String) extends Request
+case class AddThemeRequest(name: String, sessionId: String, image: GameFileObject, themeType: String,gameFile: Option[FileObject] = None) extends Request
 
-case class UpdateThemeRequest(themeId: String, name: String, image: GameFileObject, themeType: String, sessionId: String) extends Request
+case class UpdateThemeRequest(themeId: String, name: String, image: GameFileObject, themeType: String, sessionId: String,gameFile: Option[FileObject] = None) extends Request
 
 case class GetThemesRequest(themeId: String, sessionId: String) extends Request
 
