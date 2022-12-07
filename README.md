@@ -17,13 +17,15 @@ We would love your input! We want to make contributing to this project as easy a
 ## Getting started
 To get started, please have a look at our [User and Developer Documentation](https://tillioss.github.io/docs/getting-started-developer).
 
-#Installing/ Setting Up
-##Required 
+*********************
+
+# Installing/ Setting Up
+## Required 
 
  1.Please Install Redis in Your System
 
 setup
-*********************
+
 ##Redis Setup 
 '''/etc/init.d/redis-server stop'''
 
