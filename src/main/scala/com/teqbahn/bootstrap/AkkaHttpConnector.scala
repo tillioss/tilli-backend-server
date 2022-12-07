@@ -1,6 +1,6 @@
 package com.teqbahn.bootstrap
 
-import java.io.{File, FileOutputStream}
+import java.io.{File,FileInputStream, FileOutputStream,IOException}
 import java.util.concurrent.TimeUnit
 import akka.actor.{ActorRef, ActorSystem}
 import akka.http.javadsl.model.BodyPartEntity
@@ -23,6 +23,8 @@ import org.json4s.native.JsonMethods.parse
 import org.json4s.jackson.Serialization.write
 import akka.pattern.Patterns
 import scala.concurrent.Await
+import java.util.zip.{ZipEntry, ZipInputStream}
+
 
 object AkkaHttpConnector {
 
@@ -78,6 +80,13 @@ object AkkaHttpConnector {
                 val f: File = StarterMain.getImages(action + "/" + id, key)
                 getFromFile(f)
               }
+            }
+          },
+           get  {
+            path(projectPrefix / "vp-game-file" / Segment / Segment / Segment/ Segment) { (action, id,key,fileName) =>
+             val firstSubPath=action + "/" + id+"/"+key;
+             val f: File = StarterMain.getImages(firstSubPath,fileName);
+             getFromFile(f)  
             }
           },
           post {
@@ -136,6 +145,92 @@ object AkkaHttpConnector {
                 }
                 }
               }
+            }
+          },
+          post {
+            path(projectPrefix / "uploads-game-file" / Segment / Segment / Segment) { (dir1, dir2,fileName) =>
+             withSizeLimit(15000000) {
+              toStrictEntity(10.seconds) {
+                (post & entity(as[Multipart.FormData])) { fileData => {
+                    val start = System.currentTimeMillis
+                    fileData.parts.mapAsync(1) {
+                      bodyPart ⇒
+                        def writeFileOnLocal(array: Array[Byte], byteString: ByteString): Array[Byte] = {
+                          var dispositionMap: Map[String, String] = bodyPart.additionalDispositionParams
+                          if (dispositionMap.size > 0 && bodyPart.getName().contains("file") && !dispositionMap.get("filename").isEmpty) {
+                            var temp = System.getProperty("java.io.tmpdir")
+                            temp = StarterMain.fileSystemPath 
+                            temp = temp + "/" + dir1
+                            StarterMain.createDir(temp)
+                            temp += "/zip/" + dir2
+                            StarterMain.createDir(temp)
+
+                            val awsPath = dir1 + "/" + dir2
+                            val intermediateDir = StarterMain.fileSystemPath  + "/intermediates"
+                            StarterMain.createDir(intermediateDir)
+                            val srcConversionPath = intermediateDir + "/" + fileName
+                            val fileOutput = new FileOutputStream(srcConversionPath)
+                            val byteArray: Array[Byte] = byteString.toArray
+                            fileOutput.write(byteArray)
+
+                            val outputFolder: String = intermediateDir + "/"
+                            val buffer = new Array[Byte](1024)
+
+                            try {
+                              //output directory
+                              val folder = new File(outputFolder);
+                              if (!folder.exists()) {
+                                folder.mkdir();
+                              }
+
+                              //zip file content
+                              val zis: ZipInputStream = new ZipInputStream(new FileInputStream(srcConversionPath));
+                              //get the zipped file list entry
+                              var ze: ZipEntry = zis.getNextEntry();
+
+                              while (ze != null) {
+                                val zipFileName = ze.getName();
+                                if(zipFileName.contains("index.js") || zipFileName.contains("index.wasm") || zipFileName.contains("index.pck")) {
+                                  val filePath = temp + "/" +zipFileName
+                                  val newFile = new File(filePath)
+
+                                  //create folders
+                                  new File(newFile.getParent()).mkdirs();
+                                  val fos = new FileOutputStream(newFile);
+                                  var len: Int = zis.read(buffer);
+                                  while (len > 0) {
+                                    fos.write(buffer, 0, len)
+                                    len = zis.read(buffer)
+                                  }
+                                  fos.close()
+                                }
+                                ze = zis.getNextEntry()
+                              }
+
+                              zis.closeEntry()
+                              zis.close()
+
+                            } catch {
+                              case e: IOException => println("exception caught: " + e.getMessage)
+                            }
+
+                            val fileDelete = new File(srcConversionPath)
+                            if (fileDelete.exists()) {
+                              fileDelete.delete()
+                            }
+                            array ++ byteArray
+                          }
+                          array
+                        }
+                        bodyPart.entity.dataBytes.runFold(Array[Byte]())(writeFileOnLocal)
+                    }.runFold(0)(_ + _.length)
+                    val finish = System.currentTimeMillis
+                    println(System.currentTimeMillis + "- TimeElapsed on HTTP  - uploads : " + (finish - start) + ", For Key : " + dir1 + "/" + fileName + "/" + dir2)
+                    complete(GlobalMessageConstants.SUCCESS)
+                  }
+                }
+              }
+             }
             }
           },
           path(projectPrefix / "adminLogin") {
