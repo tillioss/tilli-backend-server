@@ -9,17 +9,20 @@ We are a community of learning designers, game designers, developers and educato
 
 ### Contribution Guidelines
 
-We would love your input! We want to make contributing to this project as easy and transparent as possible so kindly go through our contribution guidelines here: [Contribution Guidelines](https://tillioss.github.io/docs/Contribution-Guidelines)
+We would love your input! We want to make contributing to this project as easy and transparent as possible so kindly go through our contribution guidelines here: [Contribution Guidelines](https://tillioss.github.io/DEPRECATED-tilli-docs/docs/Contribution-Guidelines)
 
 ### Code of Conduct
-<br>Please note that Tilli’s open-source projects are governed by our [Code of conduct](https://tillioss.github.io/docs/code-of-conduct). 
+<br>Please note that Tilli’s open-source projects are governed by our [Code of conduct](https://tillioss.github.io/DEPRECATED-tilli-docs/docs/code-of-conduct). 
 
 ## Getting started
-To get started, please have a look at our [User and Developer Documentation](https://tillioss.github.io/docs/getting-started-developer).
+To get started, please have a look at our [User and Developer Documentation](https://tillioss.github.io/DEPRECATED-tilli-docs/docs/getting-started-developer#installing-tilli-server).
 
 *********************
 
 # Installing/ Setting Up
+
+We have linked here a [video tutorial] (https://drive.google.com/file/d/1DftDb_z109lvuRV8l0URmPbI6XOAVwEt/view?usp=sharing) to help guide you through the process in addition to the instructions below. 
+
 ## Required 
 
  Please Install Redis in Your System
