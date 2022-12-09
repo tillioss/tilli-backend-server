@@ -46,7 +46,6 @@ Restart your redis
 
 
 To run locally - using SBT.
-**********************
 
 sbt "runMain com.teqbahn.bootstrap.StarterMain local 2553 8093  <ServerIP>  <RedisIP>:<RedisPort> <MailId> <MailPassword> <filepath>"
 
