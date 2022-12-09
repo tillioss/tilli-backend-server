@@ -21,7 +21,7 @@ To get started, please have a look at our [User and Developer Documentation](htt
 
 # Installing/ Setting Up
 
-We have linked here a [video tutorial] (https://drive.google.com/file/d/1DftDb_z109lvuRV8l0URmPbI6XOAVwEt/view?usp=sharing) to help guide you through the process in addition to the instructions below. 
+We have linked here a [video tutorial](https://drive.google.com/file/d/1DftDb_z109lvuRV8l0URmPbI6XOAVwEt/view?usp=sharing) to help guide you through the process in addition to the instructions below. 
 
 ## Required 
 
