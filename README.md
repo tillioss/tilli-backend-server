@@ -24,7 +24,6 @@ To get started, please have a look at our [User and Developer Documentation](htt
 
  Please Install Redis in Your System
 
-**setup**
 
 ## Redis Setup 
 '''/etc/init.d/redis-server stop'''
