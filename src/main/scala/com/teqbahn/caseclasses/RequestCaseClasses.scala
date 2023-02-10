@@ -67,7 +67,7 @@ case class GetUserGameStatusRequest(userId: String, sessionId: String) extends R
 
 case class GetLevelAttemptCountRequest(userId: String, levelId: String) extends Request
 
-case class UpdateLevelAttemptRequest(userId: String, levelId: String, levelPoints: Integer, leveljson: String, levelNo: Integer, sessionId: String, attemptCount: Integer, ip: String, deviceInfo: String, userTime: Long, landingFrom: String) extends Request
+case class UpdateLevelAttemptRequest(userId: String, levelId: String, levelPoints: Integer, leveljson: String, levelNo: Integer, sessionId: String, attemptCount: Integer, ip: String, deviceInfo: String, userTime: Long, landingFrom: String,dateString: String) extends Request
 
 case class GetLevelAttemptsRequest(userId: String, pageLimit: Int, noOfPage: Int) extends Request
 
