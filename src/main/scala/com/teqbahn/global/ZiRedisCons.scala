@@ -45,6 +45,10 @@ object ZiRedisCons {
   val USER_GAME_ATTEMPT_LIST = USER_SEPARATOR + "UserAttemptList" + SEPARATOR;
   val USER_ALL_GAME_ATTEMPT_LIST = USER_SEPARATOR + "allUserAttemptList";
   val USER_TYPE_BASED_ALL_GAME_ATTEMPT_LIST = USER_SEPARATOR + "typeBasedAllUserAttemptList";
+  val USER_DATE_WISE_ATTEMPT_LIST = USER_SEPARATOR +"dateWiseAttemptList";
+  val USER_DATE_WISE_ATTEMPT_DATA_LIST = USER_SEPARATOR + "dateWiseAttemptDataList";
+  val USER_DATE_WISE_EXISTS = USER_SEPARATOR + "dateWiseAttemptExists";
+  val USER_EXCEL_SHEET_STATUS = USER_SEPARATOR + "excelSheetStatus";
 
 
 
