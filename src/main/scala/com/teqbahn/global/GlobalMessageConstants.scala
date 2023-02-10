@@ -18,6 +18,7 @@ object GlobalMessageConstants {
   val SUCCESSFULLY_BLOCKED = "Successfully Blocked!"
   val SUCCESSFULLY_UN_BLOCKED = "Successfully UnBlocked!"
   val AUTH_TEXT = "Teqbahn@321#"
-
+  val COMPLETED = "completed"
+  val PROCESSING = "processing"
 
 }

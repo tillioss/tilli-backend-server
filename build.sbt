@@ -45,6 +45,7 @@ libraryDependencies ++=Seq(
   "org.rocksdb" % "rocksdbjni" % "6.11.4",
   "joda-time" % "joda-time" % "2.10.14",
   "commons-codec" % "commons-codec" % "1.11",
+  "org.apache.poi" % "poi-ooxml" % "4.1.0",
 )
 
 mainClass in assembly := Some("com.teqbahn.bootstrap.StarterMain")

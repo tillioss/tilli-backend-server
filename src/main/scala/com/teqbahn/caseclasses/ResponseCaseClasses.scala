@@ -68,6 +68,9 @@ case class UpdateLevelAttemptResponse(response: String) extends Response
 
 case class GetGameDateWiseResponse(result: Map[String,Any],totalResult: Long) extends Response
 
+case class GameCsvFileGenrateResponse(response: String) extends Response
+
+
 case class DeleteGameFileSearchListResponse(response: String) extends Response
 
 case class GetLevelAttemptCountResponse(response: Integer) extends Response

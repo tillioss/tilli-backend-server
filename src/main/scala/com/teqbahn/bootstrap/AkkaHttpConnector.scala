@@ -966,6 +966,25 @@ object AkkaHttpConnector {
               }
             }
           },
+          path(projectPrefix / "gameCsvFileGenrate") {
+            post {
+              entity(as[String]) { data =>
+                implicit val formats = DefaultFormats
+                val jValue = parse(data)
+                val gameCsvFileGenrateRequest = jValue.extract[GameCsvFileGenrateRequest]
+                var response: GameCsvFileGenrateResponse = null
+                val future = Patterns.ask(StarterMain.adminSupervisorActorRef, gameCsvFileGenrateRequest, timeout)
+                try {
+                  val gameCsvFileGenrateResponse = Await.result(future, timeout.duration).asInstanceOf[GameCsvFileGenrateResponse]
+                  response = gameCsvFileGenrateResponse
+                } catch {
+                  case e: Exception =>
+                    e.printStackTrace()
+                }
+                complete(write(response))
+              }
+            }
+          },
           path(projectPrefix / "getLevelAttempts") {
             post {
               entity(as[String]) { data =>

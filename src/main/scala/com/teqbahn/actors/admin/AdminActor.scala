@@ -13,10 +13,14 @@ import org.json4s.native.Serialization
 import com.teqbahn.bootstrap.StarterMain.{redisCommands}
 import org.json4s.jackson.Serialization.{read, write}
 
+import com.fasterxml.jackson.databind.{JsonNode}
+import com.fasterxml.jackson.databind.node.ArrayNode
 import java.sql.Timestamp
 import scala.collection.immutable.ListMap
 import org.joda.time.{DateTime, Days}
 import scala.collection.mutable.ListBuffer
+import com.teqbahn.actors.excel.{GenerateExcel}
+
 
 
 
@@ -834,6 +838,19 @@ class AdminActor() extends Actor {
 
       sender() ! GetGameDateWiseResponse(resultData, totalRecord)    
 
+    case gameCsvFileGenrateRequest: GameCsvFileGenrateRequest =>
+    var response = GlobalMessageConstants.FAILURE
+    // var uniqueId=UUID.randomUUID().toString()
+    val createdAt = new Timestamp((new Date).getTime).getTime
+    var excelSheetStatus=ExcelSheetGenerateStatus(createdAt=createdAt,processStatus=GlobalMessageConstants.PROCESSING,userId=gameCsvFileGenrateRequest.userId)
+        redisCommands.hset(ZiRedisCons.USER_EXCEL_SHEET_STATUS +"_"+ gameCsvFileGenrateRequest.userId, gameCsvFileGenrateRequest.userId, write(excelSheetStatus))
+        
+    getExcelActorRef("excelGeneratefiles-"+gameCsvFileGenrateRequest.userId).forward(gameCsvFileGenrateRequest)
+    
+    response = GlobalMessageConstants.SUCCESS    
+    sender() ! GameCsvFileGenrateResponse(response)
+
+
     case getAllUserAttemptListRequest: GetAllUserAttemptListRequest =>
 
       var resultData: ListMap[String, Any] = ListMap.empty
@@ -1358,6 +1375,14 @@ class AdminActor() extends Actor {
       bool = true
     }
     bool
+  }
+
+  def getExcelActorRef(actorPath: String): ActorRef = {
+    if (this.context.child(actorPath).isEmpty) {
+      this.context.actorOf(Props[GenerateExcel], actorPath)
+    } else {
+      this.context.child(actorPath).get
+    }
   }
 
 
