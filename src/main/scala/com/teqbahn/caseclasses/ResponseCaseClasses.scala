@@ -70,6 +70,7 @@ case class GetGameDateWiseResponse(result: Map[String,Any],totalResult: Long) ex
 
 case class GameCsvFileGenrateResponse(response: String) extends Response
 
+case class GameFileStatusResponse(response: String) extends Response
 
 case class DeleteGameFileSearchListResponse(response: String) extends Response
 
