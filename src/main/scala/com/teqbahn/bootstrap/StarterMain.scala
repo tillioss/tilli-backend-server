@@ -176,6 +176,23 @@ object StarterMain {
     val file = new File(path1)
     return file
   }
+
+ def deleteFilePath(path: String) = {
+    val fileTemp = new File(path)
+    if (fileTemp.exists) {
+       fileTemp.delete()
+    }
+  }
+
+   def fileExistCheck(text: String): Boolean = {
+    var bool = false
+    val fileTemp = new File(text)
+    if (fileTemp.exists) {
+      bool = true
+    }
+    bool
+  }
+
 }
 
 

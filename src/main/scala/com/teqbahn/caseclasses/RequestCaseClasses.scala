@@ -71,6 +71,8 @@ case class UpdateLevelAttemptRequest(userId: String, levelId: String, levelPoint
 
 case class GetGameDateWiseReportRequest(startDate: String,endDate: String, pageLimit: Int, noOfPage: Int) extends Request
 
+case class GameCsvFileGenrateRequest(userId: String,startDate : String,endDate : String) extends Request
+
 
 case class GetLevelAttemptsRequest(userId: String, pageLimit: Int, noOfPage: Int) extends Request
 
