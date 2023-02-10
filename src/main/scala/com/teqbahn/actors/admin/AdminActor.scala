@@ -853,7 +853,7 @@ class AdminActor() extends Actor {
 
     case gameFileStatusRequest: GameFileStatusRequest =>        
         var response = GlobalMessageConstants.PROCESSING         
-        var userFolderPath= StarterMain.fileSystemPath + StarterMain.projectName + "/excel/"+gameFileStatusRequest.userId
+        var userFolderPath= StarterMain.fileSystemPath + "/excel/"+gameFileStatusRequest.userId
         var fileName = gameFileStatusRequest.userId+".xls"
         var fileOutPutPath = userFolderPath+"/"+fileName 
         var excelFileCheck = StarterMain.fileExistCheck(fileOutPutPath)
