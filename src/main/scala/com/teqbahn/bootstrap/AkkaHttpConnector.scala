@@ -947,6 +947,25 @@ object AkkaHttpConnector {
               }
             }
           },
+          path(projectPrefix / "getGameDateWiseReport") {
+            post {
+              entity(as[String]) { data =>
+                implicit val formats = DefaultFormats
+                val jValue = parse(data)
+                val getGameDateWiseReportRequest = jValue.extract[GetGameDateWiseReportRequest]
+                var response: GetGameDateWiseResponse = null
+                val future = Patterns.ask(StarterMain.adminSupervisorActorRef, getGameDateWiseReportRequest, timeout)
+                try {
+                  val getGameDateWiseResponse = Await.result(future, timeout.duration).asInstanceOf[GetGameDateWiseResponse]
+                  response = getGameDateWiseResponse
+                } catch {
+                  case e: Exception =>
+                    e.printStackTrace()
+                }
+                complete(write(response))
+              }
+            }
+          },
           path(projectPrefix / "getLevelAttempts") {
             post {
               entity(as[String]) { data =>

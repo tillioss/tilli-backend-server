@@ -15,6 +15,10 @@ import org.json4s.jackson.Serialization.{read, write}
 
 import java.sql.Timestamp
 import scala.collection.immutable.ListMap
+import org.joda.time.{DateTime, Days}
+import scala.collection.mutable.ListBuffer
+
+
 
 object AdminActor {
   private[admin] def props = Props.create(classOf[AdminActor])
@@ -718,7 +722,7 @@ class AdminActor() extends Actor {
            }
          
           /*date wise*/
-          
+
 
         /*     attemptCount = existAttemptCount + 1
       }*/
@@ -747,6 +751,88 @@ class AdminActor() extends Actor {
       }
 
       sender ! UpdateLevelAttemptResponse(response)
+
+    case getGameDateWiseReportRequest: GetGameDateWiseReportRequest =>      
+      var resultData: ListMap[String, Any] = ListMap.empty
+      var totalRecord: Long = 0          
+
+      val startDate = getGameDateWiseReportRequest.startDate
+      val endDate = getGameDateWiseReportRequest.endDate
+      val sDate = DateTime.parse(startDate)
+      val eDate = DateTime.parse(endDate)
+
+
+      val daysCount = Days.daysBetween(sDate, eDate).getDays() + 1
+      var listOfUserIds: ListBuffer[String] = ListBuffer.empty
+       
+      (0 until daysCount).map(sDate.plusDays(_)).foreach(d => {
+        val dateStr = getDateStr(d)
+        var filterkey = ZiRedisCons.USER_DATE_WISE_ATTEMPT_LIST+"_"+dateStr
+        var totalSize = redisCommands.llen(filterkey)
+        if (totalSize > 0) {
+           val lisOfIds = redisCommands.lrange(filterkey, 0,- 1).asScala.toList
+           for (idStr <- lisOfIds) {
+            var idArr = idStr
+            var userId = idArr
+            if(!listOfUserIds.contains(userId))
+            {
+             listOfUserIds += (userId)
+            }            
+           }
+         }
+
+        }) 
+
+        var noOfResultCount=getGameDateWiseReportRequest.pageLimit*getGameDateWiseReportRequest.noOfPage
+
+        if(listOfUserIds.size > 0)
+        {
+          totalRecord =listOfUserIds.size
+          var limitLoop=0    
+          var startLimit=1  
+          var endOfLimit=1   
+          var minusValue=(noOfResultCount - getGameDateWiseReportRequest.pageLimit)+1
+
+          if(minusValue > 0)
+          {
+            startLimit = minusValue
+            endOfLimit = noOfResultCount
+          }
+
+          if(totalRecord < endOfLimit)
+          {
+            endOfLimit = totalRecord.toInt
+          }
+
+          for( limitLoop <- startLimit to endOfLimit){
+            var dataMap: Map[String, Any] = Map.empty
+            var userId = listOfUserIds(limitLoop-1)   
+            var userDataStr = redisCommands.hget(ZiRedisCons.USER_JSON, userId)
+            val userData = read[User](userDataStr)
+
+            var fileStatus="-"
+            var fileCreatedAt="-"
+            
+             val excelFileProcessData = redisCommands.hget(ZiRedisCons.USER_EXCEL_SHEET_STATUS +"_"+ userId, userId)
+            if(checkIsNotEmpty(excelFileProcessData))
+            {
+              val excelFileData = read[ExcelSheetGenerateStatus](excelFileProcessData)
+              fileStatus  =  excelFileData.processStatus
+              fileCreatedAt  =  excelFileData.createdAt.toString
+
+            }
+            dataMap += ("userId" -> userId)
+            dataMap += ("nameOfChild" -> userData.nameOfChild)    
+            dataMap += ("fileStatus" -> fileStatus)   
+            dataMap += ("fileCreatedAt" -> fileCreatedAt)          
+            resultData += (userId -> dataMap)
+            
+          }
+        }
+
+  
+
+      sender() ! GetGameDateWiseResponse(resultData, totalRecord)    
 
     case getAllUserAttemptListRequest: GetAllUserAttemptListRequest =>
 
@@ -1184,8 +1270,95 @@ class AdminActor() extends Actor {
     }
     sb.toString
   }
+  def getDateStr(d: DateTime): String = {
+    d.getYear + "-" +getDoubeDigit(d.getMonthOfYear) + "-" + getDoubeDigit(d.getDayOfMonth)
+  }
 
+  def getDoubeDigit(d: Int): String = {
+    "%02d".format(d)
+  }
+  def timeStampToDateAndTime(d: String): String = {
+      var dateAndTime=""
+      var ds=d.toLong
+      val sDate = new DateTime(ds) 
+      var currentYear=sDate.getYear()
+      var currentMonth=getDoubeDigit(sDate.getMonthOfYear())
+      var currentDay=getDoubeDigit(sDate.getDayOfMonth())
+      var currentHour=sDate.getHourOfDay() 
+      var currentMinute=getDoubeDigit(sDate.getMinuteOfHour())
+      var currentMilliSeconds=getDoubeDigit(sDate.getSecondOfMinute())
+      var typeOfExt="AM" 
+      if(currentHour >= 12)
+      {
+      typeOfExt= "PM"
+        if(currentHour > 12)
+        {
+          currentHour=(currentHour.toInt-12)
+        }    
+      }
+      dateAndTime=currentYear+"-"+currentMonth+"-"+currentDay+","+currentHour +":"+currentMinute+":"+currentMilliSeconds+" "+typeOfExt
+      
+      dateAndTime
+  }
+
+   def getOSDetails(userAgent: String): String = {
+        var os="";
+        if (userAgent.toLowerCase.indexOf("windows") >= 0) {
+            os = "Windows"
+        } else if (userAgent.toLowerCase.indexOf("mac") >= 0) {
+            os = "Mac"
+        } else if (userAgent.toLowerCase.indexOf("x11") >= 0) {
+            os = "Unix"
+        } else if (userAgent.toLowerCase.indexOf("android") >= 0) {
+            os = "Android"
+        } else if (userAgent.toLowerCase.indexOf("iphone") >= 0) {
+            os = "IPhone"
+        } else {
+            os = "UnKnown, More-Info: " + userAgent
+        }
+
+         os
+    }
+
+    def getBrowserDetails(userAgent: String): String ={
+
+        var user = userAgent.toLowerCase;
+        var browser=""        
+        if (user.contains("msie")) {
+            var substring = userAgent.substring(userAgent.indexOf("MSIE")).split(";")(0)
+            browser = substring.split("\\s+")(0).replace("MSIE", "IE") + "-" + substring.split("\\s+")(1)
+        } else if (user.contains("safari") && user.contains("version")) {
+            browser = (userAgent.substring(userAgent.indexOf("Safari")).split("\\s+")(0)).split("/")(0) + "-" + (userAgent.substring(userAgent.indexOf("Version")).split("\\s+")(0)).split("/")(1)
+        } else if (user.contains("opr") || user.contains("opera")) {
+            if (user.contains("opera")){
+            browser = (userAgent.substring(userAgent.indexOf("Opera")).split("\\s+")(0)).split("/")(0) + "-" + (userAgent.substring(userAgent.indexOf("Version")).split("\\s+")(0)).split("/")(1)
+            }         
+            else if (user.contains("opr"))
+            {
+            browser = ((userAgent.substring(userAgent.indexOf("OPR")).split("\\s+")(0)).replace("/", "-")).replace("OPR", "Opera")
+            }               
+        } else if (user.contains("chrome")) {            
+            browser = (userAgent.substring(userAgent.indexOf("Chrome")).split("\\s+")(0)).replace("/", "-");
+        } else if ((user.indexOf("mozilla/7.0") > -1) || (user.indexOf("netscape6") != -1) || (user.indexOf("mozilla/4.7") != -1) || (user.indexOf("mozilla/4.78") != -1) || (user.indexOf("mozilla/4.08") != -1) || (user.indexOf("mozilla/3") != -1)) {
+            browser = "Netscape-?"
+
+        } else if (user.contains("firefox")) {
+            browser = (userAgent.substring(userAgent.indexOf("Firefox")).split("\\s+")(0)).replace("/", "-")
+        } else if (user.contains("rv")) {
+            browser = "IE-" + user.substring(user.indexOf("rv") + 3, user.indexOf(")"))
+        } else {
+            browser = "UnKnown, More-Info: " + userAgent
+        }
+         browser
+    }
    
+   def checkIsNotEmpty(text: String): Boolean = {
+    var bool = false
+    if (text != null && !text.isEmpty) {
+      bool = true
+    }
+    bool
+  }
 
 
 }
