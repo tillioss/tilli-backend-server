@@ -9,4 +9,6 @@ case class Theme(id: String, name: String, image: GameFileObject, themeType: Opt
 case class GameFileObject(id: String, title: String, fileName: String, fileType: String)
 
 case class FileObject(processType: String,fileName: String,fileType: String,origFileName:String)
+
+case class ExcelSheetGenerateStatus(userId: String,createdAt: Long,processStatus : String)
                                                                                          

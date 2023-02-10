@@ -69,6 +69,9 @@ case class GetLevelAttemptCountRequest(userId: String, levelId: String) extends 
 
 case class UpdateLevelAttemptRequest(userId: String, levelId: String, levelPoints: Integer, leveljson: String, levelNo: Integer, sessionId: String, attemptCount: Integer, ip: String, deviceInfo: String, userTime: Long, landingFrom: String,dateString: String) extends Request
 
+case class GetGameDateWiseReportRequest(startDate: String,endDate: String, pageLimit: Int, noOfPage: Int) extends Request
+
+
 case class GetLevelAttemptsRequest(userId: String, pageLimit: Int, noOfPage: Int) extends Request
 
 case class UpdateStatusBasedOnStoryRequest(userId: String, levelId: String, attemptCount: Integer, statusJson: String, levelPoints: Integer, leveljson: String, levelNo: Integer, ip: String, deviceInfo: String, userTime: Long, landingFrom: String) extends Request
