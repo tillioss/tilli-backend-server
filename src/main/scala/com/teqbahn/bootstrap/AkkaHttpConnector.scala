@@ -89,6 +89,16 @@ object AkkaHttpConnector {
              getFromFile(f)  
             }
           },
+          get {
+            path(projectPrefix / Segment/"datacollection.xls") {
+               { (userId) =>
+                var file: File = null
+                val desFilePath = StarterMain.fileSystemPath + "/excel/" + userId+"/"+userId+".xls"
+                file = new File(desFilePath)
+                getFromFile(file)
+              }
+            }
+          },
           post {
             path(projectPrefix / "uploads" / Segment / Segment / Segment) { (dir1, dir2, fileName) =>
               toStrictEntity(10.seconds) {

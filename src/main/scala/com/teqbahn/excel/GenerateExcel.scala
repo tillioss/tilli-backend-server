@@ -42,7 +42,7 @@ class GenerateExcel extends Actor {
     def receive = {
       case gameCsvFileGenrateRequest : GameCsvFileGenrateRequest =>
        
-       var userFolderPath= StarterMain.fileSystemPath + StarterMain.projectName + "/excel/"+gameCsvFileGenrateRequest.userId
+       var userFolderPath= StarterMain.fileSystemPath + "/excel/"+gameCsvFileGenrateRequest.userId
         var path1 = userFolderPath
         var fileName = gameCsvFileGenrateRequest.userId+".xls"
         var fileOutPutPath = path1+"/"+fileName 
