@@ -700,6 +700,26 @@ class AdminActor() extends Actor {
 
         }
 
+         /*date wise*/
+          var dateString=updateLevelAttemptRequest.dateString
+
+          var attemptKey=updateLevelAttemptRequest.userId + "_" + updateLevelAttemptRequest.levelId+"_"+attemptCount.toString
+
+          var jsonDataKeyExists=ZiRedisCons.USER_DATE_WISE_EXISTS + "_" + updateLevelAttemptRequest.userId+"_"+dateString
+
+          var dateWiseAttemtData=ZiRedisCons.USER_DATE_WISE_ATTEMPT_DATA_LIST+"_"+updateLevelAttemptRequest.userId+"_"+dateString
+          redisCommands.lpush(dateWiseAttemtData, attemptKey)
+           
+          if(redisCommands.exists(jsonDataKeyExists) == 0)
+           {                
+             var dateWiseKey=ZiRedisCons.USER_DATE_WISE_ATTEMPT_LIST+"_"+dateString
+             redisCommands.lpush(dateWiseKey, updateLevelAttemptRequest.userId)
+             redisCommands.hset(jsonDataKeyExists,updateLevelAttemptRequest.userId,dateString)
+           }
+         
+          /*date wise*/
+          
+
         /*     attemptCount = existAttemptCount + 1
       }*/
         redisCommands.hset(ZiRedisCons.USER_GAME_ATTEMPT + "_" + updateLevelAttemptRequest.userId, updateLevelAttemptRequest.levelId, attemptCount.toString)
