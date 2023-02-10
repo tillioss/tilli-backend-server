@@ -985,6 +985,25 @@ object AkkaHttpConnector {
               }
             }
           },
+          path(projectPrefix / "gameCsvFileStatus") {
+            post {
+              entity(as[String]) { data =>
+                implicit val formats = DefaultFormats
+                val jValue = parse(data)
+                val gameFileStatusRequest = jValue.extract[GameFileStatusRequest]
+                var response: GameFileStatusResponse = null
+                val future = Patterns.ask(StarterMain.adminSupervisorActorRef, gameFileStatusRequest, timeout)
+                try {
+                  val gameFileStatusResponse = Await.result(future, timeout.duration).asInstanceOf[GameFileStatusResponse]
+                  response = gameFileStatusResponse
+                } catch {
+                  case e: Exception =>
+                    e.printStackTrace()
+                }
+                complete(write(response))
+              }
+            }
+          },
           path(projectPrefix / "getLevelAttempts") {
             post {
               entity(as[String]) { data =>

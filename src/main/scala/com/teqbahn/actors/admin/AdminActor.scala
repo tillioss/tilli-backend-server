@@ -851,6 +851,29 @@ class AdminActor() extends Actor {
     sender() ! GameCsvFileGenrateResponse(response)
 
 
+    case gameFileStatusRequest: GameFileStatusRequest =>        
+        var response = GlobalMessageConstants.PROCESSING         
+        var userFolderPath= StarterMain.fileSystemPath + StarterMain.projectName + "/excel/"+gameFileStatusRequest.userId
+        var fileName = gameFileStatusRequest.userId+".xls"
+        var fileOutPutPath = userFolderPath+"/"+fileName 
+        var excelFileCheck = StarterMain.fileExistCheck(fileOutPutPath)
+        val excelFileProcessData = redisCommands.hget(ZiRedisCons.USER_EXCEL_SHEET_STATUS +"_"+ gameFileStatusRequest.userId, gameFileStatusRequest.userId)
+        if(excelFileCheck && checkIsNotEmpty(excelFileProcessData))
+        {
+           val createdAt = new Timestamp((new Date).getTime).getTime    
+           val data = read[ExcelSheetGenerateStatus](excelFileProcessData)
+           if(data.processStatus == GlobalMessageConstants.PROCESSING)
+           {
+            var data_New=data.copy(processStatus = GlobalMessageConstants.COMPLETED,userId = gameFileStatusRequest.userId,createdAt = createdAt)
+            redisCommands.hset(ZiRedisCons.USER_EXCEL_SHEET_STATUS +"_"+gameFileStatusRequest.userId, gameFileStatusRequest.userId, write(data_New))
+            response = GlobalMessageConstants.SUCCESS 
+           }
+          
+
+        }             
+      sender() ! GameFileStatusResponse(response)
+
+
     case getAllUserAttemptListRequest: GetAllUserAttemptListRequest =>
 
       var resultData: ListMap[String, Any] = ListMap.empty
