@@ -177,5 +177,6 @@ case class GetMapUserToRoleRequest(sessionId: String, userId: String) extends Re
 
 case class GetRoleAccessRequest(sessionId: String, userId: String) extends Request
 
+case class UserAttemptDeatailsBetweenDateRangeRequest(startDate: String,endDate: String,userId: String,userKey: String,userPassword: String) extends Request
 
 

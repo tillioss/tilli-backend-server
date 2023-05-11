@@ -147,6 +147,8 @@ case class GetMapRoleToPageResponse(listOfPageIds: List[String]) extends Respons
 
 case class GetRoleAccessResponse(result: ListMap[String, Page]) extends Response
 
+case class UserAttemptDeatailsBetweenDateRangeResponse(response: Map[String,Any]) extends Response
+
 
 
 

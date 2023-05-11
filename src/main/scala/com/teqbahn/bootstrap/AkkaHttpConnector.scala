@@ -1582,6 +1582,23 @@ object AkkaHttpConnector {
               }
             }
           },
+          path(projectPrefix / "userAttemptDeatailsBetweenDateRange") { 
+            post { entity(as[String]) { data =>    
+             implicit val formats = DefaultFormats
+             val getUserAttemptDeatailsBetweenDate = parse(data).extract[UserAttemptDeatailsBetweenDateRangeRequest]
+             var response: UserAttemptDeatailsBetweenDateRangeResponse = null
+             val future = Patterns.ask(StarterMain.adminSupervisorActorRef, getUserAttemptDeatailsBetweenDate, timeout)
+              try {
+                  response = Await.result(future, timeout.duration).asInstanceOf[UserAttemptDeatailsBetweenDateRangeResponse]
+                } catch {
+                  case e: Exception =>
+                    e.printStackTrace()
+                }
+                complete(write(response))
+
+             }            
+            }
+          },
 
         )
       }
