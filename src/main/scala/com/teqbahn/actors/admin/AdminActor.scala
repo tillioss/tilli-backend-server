@@ -1288,6 +1288,77 @@ class AdminActor() extends Actor {
       }
       sender ! GetRoleAccessResponse(resultMap)
     }
+    case getUserAttemptDeatailsBetweenDate: UserAttemptDeatailsBetweenDateRangeRequest => {
+         var resultMap: ListMap[String, Any] = ListMap.empty  
+        if(GlobalConstants.TILLIAPIACCESSPASSWORD == getUserAttemptDeatailsBetweenDate.userPassword && GlobalConstants.TILLIAPIACCESSKEY == getUserAttemptDeatailsBetweenDate.userKey)
+        {
+          
+         
+          val userId = getUserAttemptDeatailsBetweenDate.userId
+          val startDate = getUserAttemptDeatailsBetweenDate.startDate
+          val endDate = getUserAttemptDeatailsBetweenDate.endDate
+          val sDate = DateTime.parse(startDate)
+          val eDate = DateTime.parse(endDate)
+          var userDataStr = redisCommands.hget(ZiRedisCons.USER_JSON, userId)
+          val userData = read[User](userDataStr)
+          var dataMap: Map[String, Any] = Map.empty         
+          var dateObject: Map[String, Any] = Map.empty                                    
+          val daysCount = Days.daysBetween(sDate, eDate).getDays() + 1
+          val convertToInt:Long = daysCount
+          if(convertToInt <= GlobalMessageConstants.DATE_RANGE_COUNT)
+          {
+          resultMap += ("status" -> GlobalMessageConstants.SUCCESS)
+          var shortUserInfo = ShortUserInfo(userData.userId, userData.emailId, userData.name, userData.nameOfChild, userData.ageOfChild, userData.status, userData.lastLogin, userData.lastLogin, userData.genderOfChild, userData.createdAt)
+          resultMap += ("userInformation" -> shortUserInfo) 
+          (0 until daysCount).map(sDate.plusDays(_)).foreach(d => {
+            val dateStr = getDateStr(d)
+            var filterkey = ZiRedisCons.USER_DATE_WISE_ATTEMPT_LIST+"_"+dateStr
+            var totalSize = redisCommands.llen(filterkey)
+            if (totalSize > 0) {
+              val lisOfIds = redisCommands.lrange(filterkey, 0,- 1).asScala.toList
+              var attemptDataForUser: Map[String, Any] = Map.empty
+              for (idStr <- lisOfIds) {  
+                var getUserId = idStr
+                  if(userId == getUserId)
+                  {    
+                    var filterDatekey = ZiRedisCons.USER_DATE_WISE_ATTEMPT_DATA_LIST+"_"+getUserAttemptDeatailsBetweenDate.userId+"_"+dateStr  
+                    var filterDatekeySize = redisCommands.llen(filterDatekey)      
+                    if (filterDatekeySize > 0) {
+                      val lisOfIds = redisCommands.lrange(filterDatekey, 0,- 1).asScala.toList
+                      for (idStr_1 <- lisOfIds) {
+                        var idArr = idStr_1.split("_")
+                        if (idArr.length > 2) {
+                        var userId_1 = idArr(0)
+                        var levelId = idArr(1)
+                        var attemptCount = idArr(2) 
+                        if (redisCommands.hexists(ZiRedisCons.USER_GAME_ATTEMPT_JSON + "_" + userId + "_" + levelId, attemptCount)) {
+                          var attemptJsonStr = redisCommands.hget(ZiRedisCons.USER_GAME_ATTEMPT_JSON + "_" + userId + "_" + levelId, attemptCount)
+                          val levelAttempt: LevelAttempt = read[LevelAttempt](attemptJsonStr)
+                     
+                          attemptDataForUser += (attemptCount -> levelAttempt)
+
+                          }
+
+                        }
+
+                      }
+                    }  
+                    
+                    }
+                }              
+              dateObject += (dateStr -> attemptDataForUser)
+              resultMap += ("attemptInfomation" -> dateObject)
+            }
+          }) 
+          }else{
+            resultMap += ("status" -> GlobalMessageConstants.DATE_RANGE_MESSAGE)
+          }
+                    
+        }else{
+          resultMap += ("status" -> GlobalMessageConstants.FAILURE)
+        }          
+      sender ! UserAttemptDeatailsBetweenDateRangeResponse(resultMap)
+    }
     case t: String =>
       if (t != null) {
         if (t.equalsIgnoreCase("test")) {

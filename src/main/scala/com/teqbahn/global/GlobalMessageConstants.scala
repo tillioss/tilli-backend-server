@@ -21,4 +21,7 @@ object GlobalMessageConstants {
   val COMPLETED = "completed"
   val PROCESSING = "processing"
 
+  val DATE_RANGE_COUNT = 7
+  val DATE_RANGE_MESSAGE = "Please choose maximum 7 days"
+
 }

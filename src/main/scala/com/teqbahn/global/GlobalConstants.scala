@@ -18,5 +18,7 @@ object GlobalConstants {
 
   val STATIC = "Static"
   val DYNAMIC = "Dynamic"
+  val TILLIAPIACCESSPASSWORD = "GHq5lO3g7TS2Ltj"
+  val TILLIAPIACCESSKEY = "tilli"
 
 }
