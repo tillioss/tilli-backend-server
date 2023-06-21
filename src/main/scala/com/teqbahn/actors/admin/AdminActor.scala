@@ -44,6 +44,13 @@ class AdminActor() extends Actor {
       redisCommands.hset(ZiRedisCons.ADMIN_LOGIN_CREDENTIALS, "tilliadmin", write(adminLogin))
     }
 
+     if (!redisCommands.hexists(ZiRedisCons.ADMIN_LOGIN_CREDENTIALS, "admin_tilli@teqbahn.com")) {
+      val encryptPwd = Encryption.encrypt("admin", "zPVB_#84")
+      val loginId = ZiFunctions.getId()
+      var adminLogin = AdminLogin("admin", encryptPwd, "tilli-admin", loginId)
+      redisCommands.hset(ZiRedisCons.ADMIN_LOGIN_CREDENTIALS, "admin_tilli@teqbahn.com", write(adminLogin))
+    }
+
     var counter = redisCommands.get(ZiRedisCons.USER_demoUserCounter)
     if (counter != null && !counter.equalsIgnoreCase("null") && !counter.isEmpty) {
       println("counter --> " + counter)
