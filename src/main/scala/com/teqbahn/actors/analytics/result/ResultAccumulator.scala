@@ -87,8 +87,7 @@ class ResultAccumulator extends Actor {
       responseObj.set("ageBased", ageBasedArrayNode);
 
       sender() ! FetchAnalyticsResponse(responseObj.toString)
-      context.stop(self)
-
+ 
 
     case request: FetchFilterUserAttemptAnalyticsRequest =>
 
@@ -147,7 +146,7 @@ class ResultAccumulator extends Actor {
       responseObj.set("dateBasedUniqueUserAttempt", dateBasedUniqueUserAttemptArrayNode);
 
       sender() ! FetchFilterUserAttemptAnalyticsResponse(responseObj.toString)
-      context.stop(self)
+      
 
 
     case request: FetchFilterAnalyticsRequest =>
@@ -324,8 +323,7 @@ class ResultAccumulator extends Actor {
       responseObj.set("dateBasedLanguage", dateBasedLanguageFilterArrayNode);
 
       sender() ! FetchFilterAnalyticsResponse(responseObj.toString)
-      context.stop(self)
-  }
+   }
 
   def getOptValue(data: Option[String]): Tuple2[Boolean, String] = {
     if (data != None && data != null) {
