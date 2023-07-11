@@ -11,4 +11,5 @@ case class GameFileObject(id: String, title: String, fileName: String, fileType:
 case class FileObject(processType: String,fileName: String,fileType: String,origFileName:String)
 
 case class ExcelSheetGenerateStatus(userId: String,createdAt: Long,processStatus : String)
-                                                                                         
+
+case class FeedBackCaptureData(activity: String,count: Int)

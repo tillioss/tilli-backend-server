@@ -20,6 +20,10 @@ import scala.collection.immutable.ListMap
 import org.joda.time.{DateTime, Days}
 import scala.collection.mutable.ListBuffer
 import com.teqbahn.actors.excel.{GenerateExcel}
+import org.json4s.native.JsonMethods.parse
+import org.json4s.DefaultFormats
+
+
 
 
 
@@ -1366,6 +1370,163 @@ class AdminActor() extends Actor {
         }          
       sender ! UserAttemptDeatailsBetweenDateRangeResponse(resultMap)
     }
+
+    case emotionCaptureRequest: EmotionCaptureRequest => {
+      var userId = emotionCaptureRequest.userId
+      var levelId = emotionCaptureRequest.levelId
+      var themeId = emotionCaptureRequest.themeId
+      var emotionKey = emotionCaptureRequest.emotionKey
+      var attemptCount = emotionCaptureRequest.attemptCount
+      var status = GlobalMessageConstants.FAILURE
+      var underScore = "_"
+      var key_1 = ZiRedisCons.TRACKING_GAME_DATA + underScore + ZiRedisCons.EMOTION +  underScore + userId + underScore + levelId + underScore + themeId
+      var checkKeyExits = key_1 + underScore  + attemptCount  + underScore  + ZiRedisCons.COUNT  
+      var defaultCount = 1
+      if(checkIsNotEmpty(levelId) && GlobalMessageConstants.EMOTION_TYPES.contains(emotionKey) && redisCommands.exists(checkKeyExits) == 0)
+      {      
+      var counter = redisCommands.get(checkKeyExits)
+      if (counter != null) {
+         defaultCount = counter.toInt  + 1 
+      } 
+      redisCommands.set(checkKeyExits, defaultCount.toString)     
+      redisCommands.lpush(ZiRedisCons.TRACKING_GAME_DATA + underScore + ZiRedisCons.EMOTION  +  underScore + userId + underScore + levelId + underScore + themeId, emotionKey.toString)           
+      status = GlobalMessageConstants.SUCCESS
+      }          
+      sender ! EmotionCaptureResponse(status)
+    }
+
+    case getEmotionCaptureListRequest: GetEmotionCaptureListRequest => {
+      var userId = getEmotionCaptureListRequest.userId
+      var levelId = getEmotionCaptureListRequest.levelId
+      var themeId = getEmotionCaptureListRequest.themeId      
+      var underScore = "_"
+      var filterKey = ZiRedisCons.TRACKING_GAME_DATA  + underScore + ZiRedisCons.EMOTION + underScore + userId + underScore + levelId + underScore + themeId
+      val listOfEmotions = redisCommands.lrange(filterKey, 0,6).asScala.toList  
+      sender ! GetEmotionCaptureListResponse(listOfEmotions)
+    }
+
+    case feedbackCaptureRequest: FeedbackCaptureRequest => {
+      var userId = feedbackCaptureRequest.userId
+      var levelId = feedbackCaptureRequest.levelId
+      var themeId = feedbackCaptureRequest.themeId
+      var activity = feedbackCaptureRequest.activity
+      var feedBackKey = feedbackCaptureRequest.feedBackKey
+      var attemptCount = feedbackCaptureRequest.attemptCount
+      var attemptKey = "attempt_"
+      var underScore = "_"
+      var status = GlobalMessageConstants.FAILURE
+      var userId_LevelId = userId + underScore + levelId
+      var initalString = ZiRedisCons.TRACKING_GAME_DATA + underScore + ZiRedisCons.FEEDBACKTYPE
+      var filterKey = initalString + underScore + userId + underScore + levelId + underScore + themeId + underScore
+      var filterKey_2 =  initalString + underScore + userId_LevelId
+
+
+      var defaultCount = 1
+      if(checkIsNotEmpty(activity) && checkIsNotEmpty(feedBackKey) && checkIsNotEmpty(levelId) &&  GlobalMessageConstants.FEEDBACK_TYPES.contains(feedBackKey) && GlobalMessageConstants.ACTIVITY.contains(activity))
+      {
+          var key_1 = filterKey + activity + underScore + feedBackKey 
+          var countKey = key_1 + underScore +  ZiRedisCons.COUNT  
+          var attemptExistsKeyCheck =  key_1 + underScore +  attemptKey + attemptCount  + underScore +  ZiRedisCons.COUNT            
+          var suggestionList = filterKey_2  + underScore +  feedBackKey                     
+          // var feedBackHsetStore =  initalString + underScore  + userId_LevelId 
+          // var feedBackChooseKey = initalString + underScore + feedBackKey          
+          
+          if(redisCommands.exists(attemptExistsKeyCheck) == 0)
+          {            
+          var counter = redisCommands.get(countKey)
+          if (counter != null) {
+            defaultCount = counter.toInt  + 1 
+          } 
+          var addCount = key_1 + underScore + defaultCount
+          // println("countKey-->" + countKey)
+          // println("suggestionList-->" + suggestionList)   
+          var hsetKey = countKey + underScore + "data"   
+          // println("hsetKey-->" + hsetKey)  
+
+          // println("feedBackHsetStore-->"+feedBackHsetStore)
+          // println("feedBackChooseKey-->"+feedBackChooseKey)  
+
+          redisCommands.set(countKey, defaultCount.toString)
+          redisCommands.set(attemptExistsKeyCheck, defaultCount.toString)
+          val feedBackStoreData = FeedBackCaptureData(activity, defaultCount)
+          // println("-->"+write(feedBackStoreData))       
+          // redisCommands.lpush(suggestionList, countKey)  
+          redisCommands.zadd(suggestionList, defaultCount, countKey)        
+          redisCommands.hset(hsetKey, suggestionList, write(feedBackStoreData))
+
+          }
+
+     
+
+          status = GlobalMessageConstants.SUCCESS
+      }
+          
+      sender ! FeedbackCapturtResponse(status)
+    }
+
+     case getfeedbackCaptureListRequest: GetfeedbackCaptureListRequest => {
+      var userId = getfeedbackCaptureListRequest.userId
+      var levelId = getfeedbackCaptureListRequest.levelId
+      var themeId = getfeedbackCaptureListRequest.themeId      
+      var underScore = "_"
+      var resultMap: ListMap[String, Any] = ListMap.empty 
+      var count = ZiRedisCons.COUNT
+      var initalString = ZiRedisCons.TRACKING_GAME_DATA + underScore + ZiRedisCons.FEEDBACKTYPE
+      var filterKey = initalString + underScore + userId + underScore + levelId + underScore + themeId + underScore
+
+      var userId_LevelId = userId + underScore + levelId
+      var liked = GlobalMessageConstants.FEEDBACK_TYPES(0)
+      var neutral = GlobalMessageConstants.FEEDBACK_TYPES(1)
+      var disliked = GlobalMessageConstants.FEEDBACK_TYPES(2)
+      var filterKey_2 =  initalString + underScore + userId_LevelId
+    
+
+    
+      var likedKey = filterKey_2  + underScore + liked
+      var dislikedKey = filterKey_2  + underScore + disliked
+      var neutralKey =  filterKey_2  + underScore + neutral
+      val listOfLiked = redisCommands.zrevrange(likedKey,0,2).asScala.toList  
+      val listOfDisliked = redisCommands.zrevrange(dislikedKey,0,2).asScala.toList 
+      val listOfNeutral = redisCommands.zrevrange(neutralKey,0,2).asScala.toList 
+      var listOfLikedNew: ListMap[String, Any] = ListMap.empty    
+      var listOfDislikedNew: ListMap[String, Any] = ListMap.empty  
+      var listOfNeutralNew: ListMap[String, Any] = ListMap.empty  
+      implicit val formats = DefaultFormats   
+      for (idString <- listOfLiked) {
+       var hgetKey = idString +underScore +"data"
+       var getValue =  redisCommands.hget(hgetKey, likedKey)
+       val jValue = parse(getValue)
+       val getList = jValue.extract[FeedBackCaptureData]
+       listOfLikedNew += (getList.activity.toString+"_"+getList.count.toString-> getList)
+      } 
+
+      for (idString <- listOfDisliked) {
+       var hgetKey = idString + underScore +"data"
+       var getValue =  redisCommands.hget(hgetKey, dislikedKey)
+       val jValue = parse(getValue)
+       val getList = jValue.extract[FeedBackCaptureData]
+       listOfDislikedNew += (getList.activity.toString+"_"+getList.count.toString-> getList)
+      } 
+
+      for (idString <- listOfNeutral) {
+       var hgetKey = idString + underScore +"data"
+       var getValue =  redisCommands.hget(hgetKey, neutralKey)
+       val jValue = parse(getValue)
+       val getList = jValue.extract[FeedBackCaptureData]
+       listOfNeutralNew += (getList.activity.toString+"_"+getList.count.toString-> getList)
+      } 
+      
+                   
+      resultMap += (liked-> listOfLikedNew)
+      resultMap += (disliked-> listOfDislikedNew)
+      resultMap += (neutral-> listOfNeutralNew)
+      // println("--> res -->"+resultMap)
+            
+      // var filterKey = initalString + underScore + userId_LevelId
+      //
+      sender ! GetfeedbackCaptureListResponse(resultMap)
+    }
+
     case t: String =>
       if (t != null) {
         if (t.equalsIgnoreCase("test")) {
