@@ -1656,7 +1656,7 @@ object AkkaHttpConnector {
              implicit val formats = DefaultFormats
              val getfeedbackCaptureListRequest = parse(data).extract[GetfeedbackCaptureListRequest]
              var getfeedbackCaptureListResponse: GetfeedbackCaptureListResponse = null
-             val future = Patterns.ask(StarterMain.adminSupervisorActorRef, getfeedbackCaptureListResponse, timeout)
+             val future = Patterns.ask(StarterMain.adminSupervisorActorRef, getfeedbackCaptureListRequest, timeout)
               try {
                   getfeedbackCaptureListResponse = Await.result(future, timeout.duration).asInstanceOf[GetfeedbackCaptureListResponse]
                 } catch {
