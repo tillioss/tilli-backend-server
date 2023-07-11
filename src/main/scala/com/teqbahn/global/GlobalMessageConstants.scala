@@ -23,5 +23,9 @@ object GlobalMessageConstants {
 
   val DATE_RANGE_COUNT = 7
   val DATE_RANGE_MESSAGE = "Please choose maximum 7 days"
+  var EMOTION_TYPES = Array("happy","sad","angry","surprised","scared","disgusted")
+  var FEEDBACK_TYPES = Array("liked","neutral","disliked")
+  var ACTIVITY = Array("bubblepopactivity", "yogaactivity", "coloringactivity","rainbowactivity", "selfHugactivity", "waterdrinkingactivity")
+
 
 }

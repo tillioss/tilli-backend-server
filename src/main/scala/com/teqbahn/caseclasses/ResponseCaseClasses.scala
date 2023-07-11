@@ -149,6 +149,13 @@ case class GetRoleAccessResponse(result: ListMap[String, Page]) extends Response
 
 case class UserAttemptDeatailsBetweenDateRangeResponse(response: Map[String,Any]) extends Response
 
+case class EmotionCaptureResponse(response: String) extends Response
+
+case class GetEmotionCaptureListResponse(response: List[String]) extends Response
+
+case class FeedbackCapturtResponse(response: String) extends Response
+
+case class GetfeedbackCaptureListResponse(response: Map[String,Any]) extends Response
 
 
 

@@ -179,4 +179,11 @@ case class GetRoleAccessRequest(sessionId: String, userId: String) extends Reque
 
 case class UserAttemptDeatailsBetweenDateRangeRequest(startDate: String,endDate: String,userId: String,userKey: String,userPassword: String) extends Request
 
+case class  EmotionCaptureRequest(userId: String,levelId: String,themeId: String,emotionKey: String,attemptCount: Int) extends Request
+
+case class  GetEmotionCaptureListRequest(userId: String,levelId: String,themeId: String) extends Request
+
+case class  FeedbackCaptureRequest(userId: String,levelId: String,themeId: String,feedBackKey: String ,activity: String,attemptCount: Int) extends Request
+
+case class GetfeedbackCaptureListRequest(userId: String,levelId: String,themeId: String) extends Request
 

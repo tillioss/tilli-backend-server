@@ -8,6 +8,10 @@ object ZiRedisCons {
   val GAME = "Game"
   val LANGUAGE = "Language"
   val LOGS = "Logs"
+  val COUNT = "Count"
+  val FEEDBACKTYPE = "Feedback"
+  val EMOTION = "Emotion"
+
 
   //For Admin Actor :
   val ADMIN_SEPARATOR = DB + SEPARATOR + ADMIN + SEPARATOR;
@@ -65,6 +69,10 @@ object ZiRedisCons {
   val FILE_JSON = GAME_SEPARATOR + "fileJson"; // Map[string,String] // Tilli::Game::fileJson,
   val FILE_TYPE = GAME_SEPARATOR + "fileType"; // Map[string,String] // Tilli::Game::fileType,
   val LEVEL_MAPPING_JSON = GAME_SEPARATOR + "levelMappingJson"; // Map[string,String] // Tilli::Game::levelMappingJson,
+  val THEME_CONTENT_LAYERES_JSON = GAME_SEPARATOR + "themeContentLayersJson";
+  val TRACKING_GAME_DATA = GAME_SEPARATOR +"trackingGameData" ;
+
+
 
   val LANGUAGE_SEPARATOR = DB + SEPARATOR + LANGUAGE + SEPARATOR; // Tilli::Language::
   val LANGUAGE_DATA = LANGUAGE_SEPARATOR + "languageData"; // Tilli::Game::languageData,

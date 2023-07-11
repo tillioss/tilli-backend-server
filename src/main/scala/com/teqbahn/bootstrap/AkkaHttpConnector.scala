@@ -1600,6 +1600,75 @@ object AkkaHttpConnector {
             }
           },
 
+          path(projectPrefix / "emotionCapture") { 
+            post { entity(as[String]) { data =>    
+             implicit val formats = DefaultFormats
+             val emotionCaptureRequest = parse(data).extract[EmotionCaptureRequest]
+             var emotionCaptureResponse: EmotionCaptureResponse = null
+             val future = Patterns.ask(StarterMain.adminSupervisorActorRef, emotionCaptureRequest, timeout)
+              try {
+                  emotionCaptureResponse = Await.result(future, timeout.duration).asInstanceOf[EmotionCaptureResponse]
+                } catch {
+                  case e: Exception =>
+                    e.printStackTrace()
+                }
+                complete(write(emotionCaptureResponse))
+             }            
+            }
+          },
+
+           path(projectPrefix / "getEmotionCaptureList") { 
+            post { entity(as[String]) { data =>    
+             implicit val formats = DefaultFormats
+             val getEmotionCaptureListRequest = parse(data).extract[GetEmotionCaptureListRequest]
+             var getEmotionCaptureListResponse: GetEmotionCaptureListResponse = null
+             val future = Patterns.ask(StarterMain.adminSupervisorActorRef, getEmotionCaptureListRequest, timeout)
+              try {
+                  getEmotionCaptureListResponse = Await.result(future, timeout.duration).asInstanceOf[GetEmotionCaptureListResponse]
+                } catch {
+                  case e: Exception =>
+                    e.printStackTrace()
+                }
+                complete(write(getEmotionCaptureListResponse))
+             }            
+            }
+          },
+
+          path(projectPrefix / "feedbackCapture") { 
+            post { entity(as[String]) { data =>    
+             implicit val formats = DefaultFormats
+             val feedbackCaptureRequest = parse(data).extract[FeedbackCaptureRequest]
+             var feedbackCapturtResponse: FeedbackCapturtResponse = null
+             val future = Patterns.ask(StarterMain.adminSupervisorActorRef, feedbackCaptureRequest, timeout)
+              try {
+                  feedbackCapturtResponse = Await.result(future, timeout.duration).asInstanceOf[FeedbackCapturtResponse]
+                } catch {
+                  case e: Exception =>
+                    e.printStackTrace()
+                }
+                complete(write(feedbackCapturtResponse))
+             }            
+            }
+          },
+
+           path(projectPrefix / "getfeedbackCaptureList") { 
+            post { entity(as[String]) { data =>    
+             implicit val formats = DefaultFormats
+             val getfeedbackCaptureListRequest = parse(data).extract[GetfeedbackCaptureListRequest]
+             var getfeedbackCaptureListResponse: GetfeedbackCaptureListResponse = null
+             val future = Patterns.ask(StarterMain.adminSupervisorActorRef, getfeedbackCaptureListResponse, timeout)
+              try {
+                  getfeedbackCaptureListResponse = Await.result(future, timeout.duration).asInstanceOf[GetfeedbackCaptureListResponse]
+                } catch {
+                  case e: Exception =>
+                    e.printStackTrace()
+                }
+                complete(write(getfeedbackCaptureListResponse))
+             }            
+            }
+          },
+
+
         )
       }
     }
