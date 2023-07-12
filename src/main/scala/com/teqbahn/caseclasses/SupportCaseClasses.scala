@@ -12,4 +12,6 @@ case class FileObject(processType: String,fileName: String,fileType: String,orig
 
 case class ExcelSheetGenerateStatus(userId: String,createdAt: Long,processStatus : String)
 
+case class ThemeLayerContent(layers: String,pageType: Option[String] = None)
+
 case class FeedBackCaptureData(activity: String,count: Int)
