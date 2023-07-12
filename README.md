@@ -1,6 +1,6 @@
 # **tilli-backend-server**
 
-Tilli is a web-based application with scala as backend and uses truffle as a tool to compile. It uses MongoDB as a database.
+Tilli is a web-based application with scala as backend and uses truffle as a tool to compile. It uses Redis as a database.
 
 ************************
 
