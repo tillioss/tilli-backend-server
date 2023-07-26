@@ -2,6 +2,8 @@ name := "tilli-backend-server-2"
 
 version := "1.0"
 
+val scalaTestVersion = "3.2.9"
+
 scalaVersion := "2.12.10"
 
 lazy val root = (project in file("."))
@@ -31,7 +33,9 @@ libraryDependencies ++=Seq(
   "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion,
   "org.json4s" %% "json4s-native" % "3.6.7",
   "org.json4s" %% "json4s-jackson" % "3.6.7",
-
+  "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
+  "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
+  "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
   "commons-io" % "commons-io" % "2.6",
   "commons-lang" % "commons-lang" % "2.6",
   "org.apache.commons" % "commons-email" % "1.5",
