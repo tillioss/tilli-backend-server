@@ -45,7 +45,7 @@ case class DeleteThemesResponse(response: String) extends Response
 
 case class UpdateThemeContentResponse(response: String) extends Response
 
-case class GetThemeContentResponse(response: String) extends Response
+case class GetThemeContentResponse(response: ThemeLayerContent) extends Response
 
 
 case class AddGameFileResponse(response: String) extends Response

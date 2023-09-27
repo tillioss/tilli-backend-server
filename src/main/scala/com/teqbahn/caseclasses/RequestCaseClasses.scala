@@ -43,7 +43,7 @@ case class GetThemesRequest(themeId: String, sessionId: String) extends Request
 
 case class DeleteThemesRequest(themeId: String, sessionId: String) extends Request
 
-case class UpdateThemeContentRequest(themeId: String, data: String) extends Request
+case class UpdateThemeContentRequest(themeId: String, data: String,pageType: Option[String] = None) extends Request
 
 case class GetThemeContentRequest(themeId: String) extends Request
 
