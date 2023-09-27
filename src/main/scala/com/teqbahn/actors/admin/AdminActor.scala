@@ -485,12 +485,23 @@ class AdminActor() extends Actor {
       redisCommands.hdel(ZiRedisCons.THEME_JSON, deleteThemesRequest.themeId)
 
     case updateThemeContentRequest: UpdateThemeContentRequest =>
-      redisCommands.hset(ZiRedisCons.THEME_CONTENT_JSON, updateThemeContentRequest.themeId, updateThemeContentRequest.data)
+      var pageType = ""
+      if (updateThemeContentRequest.pageType != None) {
+        pageType = updateThemeContentRequest.pageType.get
+      }
+      var updateThemeContent = ThemeLayerContent(layers = updateThemeContentRequest.data,
+      pageType = Option(pageType))      
+      redisCommands.hset(ZiRedisCons.THEME_CONTENT_LAYERES_JSON, updateThemeContentRequest.themeId, write(updateThemeContent))
       sender ! UpdateThemeContentResponse(GlobalMessageConstants.SUCCESS)
 
     case getThemeContentRequest: GetThemeContentRequest =>
-      var themeContent = redisCommands.hget(ZiRedisCons.THEME_CONTENT_JSON, getThemeContentRequest.themeId)
-      sender ! GetThemeContentResponse(themeContent)
+      var themeContent = redisCommands.hget(ZiRedisCons.THEME_CONTENT_LAYERES_JSON, getThemeContentRequest.themeId)
+      var resultMap: ThemeLayerContent = null
+      if(themeContent !=null)
+      {
+       resultMap = read[ThemeLayerContent](themeContent)
+      }         
+      sender ! GetThemeContentResponse(resultMap)
 
     case addThemeRequest: AddThemeRequest =>
       var themeId = ZiFunctions.getId()

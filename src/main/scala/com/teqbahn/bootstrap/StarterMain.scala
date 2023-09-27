@@ -38,7 +38,7 @@ object StarterMain {
 
   var fromMail = ""
   var fromMailPassword = ""
-  var SALT = "Test@123" //replace your encryption key
+  var SALT = "jMhKlOuJnM34G6NHkqo9V010GhLAqOpF0BePojHgh1HgNg8^72k" //replace your encryption key
 
   var adminSupervisorActorRef: ActorRef = null
   var mailActorRef: ActorRef = null
