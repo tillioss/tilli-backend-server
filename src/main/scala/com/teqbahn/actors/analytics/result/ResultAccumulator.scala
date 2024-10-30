@@ -1,5 +1,131 @@
 package com.teqbahn.actors.analytics.result
 
+import zio._
+import zio.json._
+import zio.redis._
+import com.fasterxml.jackson.databind.{ObjectMapper, node => jackson}
+import org.joda.time.{DateTime, Days}
+import com.teqbahn.caseclasses._
+import com.teqbahn.global.ZiRedisCons
+
+object ResultAccumulator {
+  trait Service {
+    def fetchAnalytics(request: FetchAnalyticsRequest): Task[FetchAnalyticsResponse]
+    def fetchFilterUserAttemptAnalytics(request: FetchFilterUserAttemptAnalyticsRequest): Task[FetchFilterUserAttemptAnalyticsResponse]
+    def fetchFilterAnalytics(request: FetchFilterAnalyticsRequest): Task[FetchFilterAnalyticsResponse]
+  }
+
+  class Live(redis: Redis) extends Service {
+    private val objectMapper = new ObjectMapper()
+
+    override def fetchAnalytics(request: FetchAnalyticsRequest): Task[FetchAnalyticsResponse] = {
+      for {
+        genderBased <- fetchGenderBasedData
+        languageBased <- fetchLanguageBasedData
+        ageBased <- fetchAgeBasedData
+        responseObj = createResponseObject(genderBased, languageBased, ageBased)
+      } yield FetchAnalyticsResponse(responseObj.toString)
+    }
+
+    override def fetchFilterUserAttemptAnalytics(request: FetchFilterUserAttemptAnalyticsRequest): Task[FetchFilterUserAttemptAnalyticsResponse] = {
+      for {
+        (sDateStr, eDateStr) <- ZIO.succeed(getDateRange(request.sDate, request.eDate))
+        dateBasedUserAttempt <- fetchDateBasedUserAttempt(sDateStr, eDateStr)
+        dateBasedUniqueUserAttempt <- fetchDateBasedUniqueUserAttempt(sDateStr, eDateStr)
+        responseObj = createUserAttemptResponseObject(dateBasedUserAttempt, dateBasedUniqueUserAttempt)
+      } yield FetchFilterUserAttemptAnalyticsResponse(responseObj.toString)
+    }
+
+    override def fetchFilterAnalytics(request: FetchFilterAnalyticsRequest): Task[FetchFilterAnalyticsResponse] = {
+      for {
+        (sDateStr, eDateStr) <- ZIO.succeed(getDateRange(request.sDate, request.eDate))
+        dateBased <- if (request.requestType != "filter") fetchDateBasedData(sDateStr, eDateStr) else fetchFilteredDateBasedData(sDateStr, eDateStr, request)
+        dateBasedGender <- if (request.requestType != "filter") fetchDateBasedGenderData(sDateStr, eDateStr, request.filterGender) else ZIO.succeed(objectMapper.createArrayNode())
+        dateBasedLanguage <- if (request.requestType != "filter") fetchDateBasedLanguageData(sDateStr, eDateStr, request.filterLanguage) else ZIO.succeed(objectMapper.createArrayNode())
+        responseObj = createFilterResponseObject(dateBased, dateBasedGender, dateBasedLanguage)
+      } yield FetchFilterAnalyticsResponse(responseObj.toString)
+    }
+
+    // Helper methods
+    private def fetchGenderBasedData: Task[jackson.ArrayNode] = {
+      val genderArray = Array("male", "female")
+      ZIO.foldLeft(genderArray)(objectMapper.createArrayNode()) { (acc, gender) =>
+        val index = ZiRedisCons.ACCUMULATOR_GenderUserCounter + gender
+        redis.get(index).map { counterOpt =>
+          val counter = counterOpt.getOrElse("0")
+          val genderObjNode = objectMapper.createObjectNode()
+          genderObjNode.put("x", gender)
+          genderObjNode.put("y", counter)
+          acc.add(genderObjNode)
+        }
+      }
+    }
+
+    private def fetchLanguageBasedData: Task[jackson.ArrayNode] = {
+      val languageArray = Array("sinhala", "tamil", "english")
+      ZIO.foldLeft(languageArray)(objectMapper.createArrayNode()) { (acc, language) =>
+        val index = ZiRedisCons.ACCUMULATOR_LanguageUserCounter + language
+        redis.get(index).map { counterOpt =>
+          val counter = counterOpt.getOrElse("0")
+          val languageObjNode = objectMapper.createObjectNode()
+          languageObjNode.put("x", language)
+          languageObjNode.put("y", counter)
+          acc.add(languageObjNode)
+        }
+      }
+    }
+
+    private def fetchAgeBasedData: Task[jackson.ArrayNode] = {
+      ZIO.foldLeft(5 to 10)(objectMapper.createArrayNode()) { (acc, age) =>
+        val index = ZiRedisCons.ACCUMULATOR_AgeUserCounter + age
+        redis.get(index).map { counterOpt =>
+          val counter = counterOpt.getOrElse("0")
+          val ageObjNode = objectMapper.createObjectNode()
+          ageObjNode.put("x", age.toString)
+          ageObjNode.put("y", counter)
+          acc.add(ageObjNode)
+        }
+      }
+    }
+
+    private def createResponseObject(genderBased: jackson.ArrayNode, languageBased: jackson.ArrayNode, ageBased: jackson.ArrayNode): jackson.ObjectNode = {
+      val responseObj = objectMapper.createObjectNode()
+      responseObj.set("genderBased", genderBased)
+      responseObj.set("languageBased", languageBased)
+      responseObj.set("ageBased", ageBased)
+      responseObj
+    }
+
+    // ... Additional helper methods for fetchFilterUserAttemptAnalytics and fetchFilterAnalytics ...
+
+    private def getDateRange(sDate: Option[String], eDate: Option[String]): (String, String) = {
+      val sDateStr = sDate.getOrElse("2021-08-01")
+      val eDateStr = eDate.getOrElse("2021-08-10")
+      (sDateStr, eDateStr)
+    }
+
+    private def getDateStr(d: DateTime): String = {
+      s"${d.getYear}-${getDoubleDigit(d.getMonthOfYear)}-${getDoubleDigit(d.getDayOfMonth)}"
+    }
+
+    private def getDoubleDigit(d: Int): String = {
+      f"$d%02d"
+    }
+  }
+
+  val live: ZLayer[Redis, Nothing, ResultAccumulator.Service] = ZLayer.fromFunction(new Live(_))
+
+  // Accessor methods
+  def fetchAnalytics(request: FetchAnalyticsRequest): ZIO[ResultAccumulator.Service, Throwable, FetchAnalyticsResponse] =
+    ZIO.serviceWithZIO[Service](_.fetchAnalytics(request))
+
+  def fetchFilterUserAttemptAnalytics(request: FetchFilterUserAttemptAnalyticsRequest): ZIO[ResultAccumulator.Service, Throwable, FetchFilterUserAttemptAnalyticsResponse] =
+    ZIO.serviceWithZIO[Service](_.fetchFilterUserAttemptAnalytics(request))
+
+  def fetchFilterAnalytics(request: FetchFilterAnalyticsRequest): ZIO[ResultAccumulator.Service, Throwable, FetchFilterAnalyticsResponse] =
+    ZIO.serviceWithZIO[Service](_.fetchFilterAnalytics(request))
+}
+
 import akka.actor.{Actor, PoisonPill}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.teqbahn.bootstrap.StarterMain
@@ -261,6 +387,7 @@ class ResultAccumulator extends Actor {
                   if (counter != null && !counter.equalsIgnoreCase("null") && !counter.isEmpty) {
                   } else {
                     counter = "0"
+
                   }
                   totalCounter = totalCounter + counter.toLong
                 }

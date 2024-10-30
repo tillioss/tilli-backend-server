@@ -1,201 +1,222 @@
 package com.teqbahn.bootstrap
 
-import java.io.{File}
-import akka.actor.{ActorRef, ActorSystem, Props}
-import akka.http.scaladsl.{Http}
-//import akka.management.scaladsl.AkkaManagement
-import akka.stream.{ActorMaterializer}
+import zio._
+import zio.http._
+import zio.http.model.Method._
+import zio.http.model.Status
+import zio.actors._
+import zio.actors.interruption._
+import zio.stream._
 import com.typesafe.config.{Config, ConfigFactory}
+import java.io.File
+import io.lettuce.core.RedisClient
+import io.lettuce.core.api.StatefulRedisConnection
+import io.lettuce.core.api.sync.RedisCommands
 import com.teqbahn.actors.admin.AdminActor
 import com.teqbahn.actors.analytics.Accumulators
-import com.teqbahn.actors.analytics.accumulator.{AgeAccumulators, FilterAccumulators, GenderAccumulators, LanguageAccumulators}
-import com.teqbahn.actors.analytics.accumulator.time.{DayAccumulators, MonthAccumulators, YearAccumulators}
+import com.teqbahn.actors.analytics.accumulator._
 import com.teqbahn.actors.analytics.result.ResultAccumulator
 import com.teqbahn.actors.logs.LogsActor
 import com.teqbahn.actors.mailer.MailActor
-import io.lettuce.core.api.StatefulRedisConnection
-import io.lettuce.core.api.sync.RedisCommands
 
-object StarterMain {
-  var envServer = "local" // "live"
-  var confFile = "application_local.conf"
+object StarterMain extends ZIOAppDefault {
 
-  var akkaPort = 2551
-  var httpPort = 8091
-  var http2Port = 8081
-  var akkaManagementPort = 8558
-  var httpHostName = "0.0.0.0" // "0.0.0.0"
-  var akkaManagementHostName = "127.0.0.1" // "127.0.0.1"
+  // Configuration case class
+  case class AppConfig(
+    envServer: String,
+    confFile: String,
+    akkaPort: Int,
+    httpPort: Int,
+    http2Port: Int,
+    akkaManagementPort: Int,
+    httpHostName: String,
+    akkaManagementHostName: String,
+    projectName: String,
+    fileSystemType: String,
+    fileSystemPath: String,
+    projectPrefix: String,
+    frontEndPath: String,
+    redisHostPath: String,
+    fromMail: String,
+    fromMailPassword: String,
+    salt: String
+  )
 
-  // Project specific data
-
-  var projectName = "tilli"
-  var fileSystemType = "Redis" // All
-  var fileSystemPath = ""
-  var projectPrefix = "tilli-api"
-  var frontEndPath = "https://teqbahn.com/tilli-web/"
-  var redisHostPath = "127.0.0.1:6379"
-
-  var fromMail = ""
-  var fromMailPassword = ""
-  var SALT = "jMhKlOuJnM34G6NHkqo9V010GhLAqOpF0BePojHgh1HgNg8^72k" //replace your encryption key
-
-  var adminSupervisorActorRef: ActorRef = null
-  var mailActorRef: ActorRef = null
-  var logsActorRef: ActorRef = null
-
-  var accumulatorsActorRef: ActorRef = null
-  var accumulatorDayActorRef: ActorRef = null
-  var accumulatorMonthActorRef: ActorRef = null
-  var accumulatorYearActorRef: ActorRef = null
-  var accumulatorAgeActorRef: ActorRef = null
-  var accumulatorLanguageActorRef: ActorRef = null
-  var accumulatorGenderActorRef: ActorRef = null
-  var accumulatorFilterActorRef: ActorRef = null
-  var accumulatorResultActorRef: ActorRef = null
-
-  var redisCommands: RedisCommands[String, String] = null
-
-  def main(args: Array[String]): Unit = {
-
-    if (args.length > 0) {
-      envServer = args(0)
-    }
-
-    if (envServer.equalsIgnoreCase("local")) {
-
-      akkaPort = args(1).toInt
-      httpPort = args(2).toInt
-      httpHostName = args(3)
-      redisHostPath = args(4)
-      fromMail = args(5)
-      fromMailPassword = args(6)
-      fileSystemPath = args(7)
-    
-      // fileSystemPath = "/efs/tilli/"
-    } else {
-      confFile = "application_live.conf"
-      akkaPort = System.getenv("akkaPort").toInt
-      httpPort = System.getenv("httpPort").toInt
-      http2Port = System.getenv("http2Port").toInt
-      akkaManagementPort = System.getenv("akkaManagementPort").toInt
-      httpHostName = System.getenv("httpHostName")
-      akkaManagementHostName = System.getenv("akkaManagementHostName")
-
-
-      projectName = System.getenv("projectName")
-      fileSystemType = System.getenv("fileSystemType")
-      fileSystemPath = System.getenv("fileSystemPath")
-      projectPrefix = System.getenv("projectPrefix")
-      frontEndPath = System.getenv("frontEndPath")
-      redisHostPath = System.getenv("redisHostPath")
-      fromMail = System.getenv("fromMail")
-      fromMailPassword = System.getenv("fromMailPassword")
-    }
-
-    printEnv()
-
-    //    createDir(fileSystemPath + projectName)
-
-    //implicit val actorSystem = ActorSystem("tilli", setupNodeConfig(akkaPort))
-    implicit val actorSystem = ActorSystem("tilli")
-    implicit val materializer = ActorMaterializer()
-    implicit val executionContext = actorSystem.dispatcher
-
-
-   // AkkaManagement(actorSystem).start()
-
-
-    import io.lettuce.core.RedisClient
-    val client: RedisClient = RedisClient.create("redis://" + redisHostPath)
-    val connection: StatefulRedisConnection[String, String] = client.connect()
-    redisCommands = connection.sync()
-
-
-    adminSupervisorActorRef = actorSystem.actorOf(Props.create(classOf[AdminActor]), "supervised-admin")
-    mailActorRef = actorSystem.actorOf(Props.create(classOf[MailActor]), "actor-mail")
-    logsActorRef = actorSystem.actorOf(Props.create(classOf[LogsActor]), "actor-logs")
-    // Accumulator
-
-    accumulatorsActorRef = actorSystem.actorOf(Props.create(classOf[Accumulators]), "actor-accumulator")
-    accumulatorDayActorRef = actorSystem.actorOf(Props.create(classOf[DayAccumulators]), "actor-accumulator-day")
-    accumulatorMonthActorRef = actorSystem.actorOf(Props.create(classOf[MonthAccumulators]), "actor-accumulator-month")
-    accumulatorYearActorRef = actorSystem.actorOf(Props.create(classOf[YearAccumulators]), "actor-accumulator-year")
-    accumulatorAgeActorRef = actorSystem.actorOf(Props.create(classOf[AgeAccumulators]), "actor-accumulator-age")
-    accumulatorLanguageActorRef = actorSystem.actorOf(Props.create(classOf[LanguageAccumulators]), "actor-accumulator-language")
-    accumulatorGenderActorRef = actorSystem.actorOf(Props.create(classOf[GenderAccumulators]), "actor-accumulator-gender")
-    accumulatorFilterActorRef = actorSystem.actorOf(Props.create(classOf[FilterAccumulators]), "actor-accumulator-filter")
-    accumulatorResultActorRef = actorSystem.actorOf(Props.create(classOf[ResultAccumulator]), "actor-accumulator-result")
-
-
-    Http().bindAndHandle(AkkaHttpConnector.getRoutes(materializer, actorSystem, projectPrefix, akkaManagementHostName), httpHostName, httpPort)
-    println(s"Server online at http://" + httpHostName + ":" + httpPort + "/\nPress RETURN to stop...")
-
+  // Service for Redis Commands
+  trait RedisService {
+    def commands: RedisCommands[String, String]
   }
 
-  def setupNodeConfig(port: Int): Config = ConfigFactory
-    .parseString(
-      "akka.remote.netty.tcp.port=" + port + "\n"
-        + "akka.remote.netty.tcp.hostname=" + akkaManagementHostName + "\n"
-        + "akka.remote.netty.tcp.port=" + akkaPort + "\n"
-      //  + "akka.management.http.port=" + akkaManagementPort + "\n"
-       // + "akka.management.http.bind-port=" + akkaManagementPort + "\n"
-        + "akka.remote.artery.canonical.hostname=" + akkaManagementHostName + "\n"
-       // + "akka.management.http.hostname=" + akkaManagementHostName + "\n"
-        + "akka.remote.artery.canonical.port=" + port + "\n"
-      //  + "akka.http.server.preview.enable-http2 = on"
-    )
-    .withFallback(ConfigFactory.load(confFile))
+  object RedisService {
+    def make(redisHostPath: String): Task[RedisService] = ZIO.attempt {
+      val client: RedisClient = RedisClient.create(s"redis://$redisHostPath")
+      val connection: StatefulRedisConnection[String, String] = client.connect()
+      new RedisService {
+        override val commands: RedisCommands[String, String] = connection.sync()
+      }
+    }
+  }
 
-  def printEnv(): Unit = {
+  // Layer for AppConfig
+  val appConfigLayer: ZLayer[Any, Throwable, AppConfig] = ZLayer {
+    for {
+      args <- ZIO.args
+      envServer = if (args.nonEmpty) args(0) else "local"
+      config <- if (envServer.equalsIgnoreCase("local")) {
+                  for {
+                    _ <- ZIO.when(args.length < 8)(ZIO.fail(new IllegalArgumentException("Not enough arguments for local configuration")))
+                    conf = AppConfig(
+                      envServer = "local",
+                      confFile = "application_local.conf",
+                      akkaPort = args(1).toInt,
+                      httpPort = args(2).toInt,
+                      http2Port = 8081,
+                      akkaManagementPort = 8558,
+                      httpHostName = args(3),
+                      akkaManagementHostName = "127.0.0.1",
+                      projectName = "tilli",
+                      fileSystemType = "Redis",
+                      fileSystemPath = args(7),
+                      projectPrefix = "tilli-api",
+                      frontEndPath = "https://teqbahn.com/tilli-web/",
+                      redisHostPath = args(4),
+                      fromMail = args(5),
+                      fromMailPassword = args(6),
+                      salt = "jMhKlOuJnM34G6NHkqo9V010GhLAqOpF0BePojHgh1HgNg8^72k"
+                    )
+                  } yield config
+                } else {
+                  for {
+                    conf = AppConfig(
+                      envServer = "live",
+                      confFile = "application_live.conf",
+                      akkaPort = System.getenv("akkaPort").toInt,
+                      httpPort = System.getenv("httpPort").toInt,
+                      http2Port = System.getenv("http2Port").toInt,
+                      akkaManagementPort = System.getenv("akkaManagementPort").toInt,
+                      httpHostName = System.getenv("httpHostName"),
+                      akkaManagementHostName = System.getenv("akkaManagementHostName"),
+                      projectName = System.getenv("projectName"),
+                      fileSystemType = System.getenv("fileSystemType"),
+                      fileSystemPath = System.getenv("fileSystemPath"),
+                      projectPrefix = System.getenv("projectPrefix"),
+                      frontEndPath = System.getenv("frontEndPath"),
+                      redisHostPath = System.getenv("redisHostPath"),
+                      fromMail = System.getenv("fromMail"),
+                      fromMailPassword = System.getenv("fromMailPassword"),
+                      salt = "jMhKlOuJnM34G6NHkqo9V010GhLAqOpF0BePojHgh1HgNg8^72k" // Ideally, fetch from env
+                    )
+                  } yield config
+                }
+    } yield config
+  }
+
+  // Layer for RedisService
+  val redisLayer: ZLayer[AppConfig, Throwable, RedisService] = ZLayer.fromFunctionM { config =>
+    RedisService.make(config.redisHostPath)
+  }
+
+  // Define ZIO Actors for your services
+  // Example for AdminActor
+  object AdminActor {
+    sealed trait Command
+    case object DoSomething extends Command
+
+    def behavior: Behavior[Command] = Behaviors.receive { (context, message) =>
+      message match {
+        case DoSomething =>
+          context.log.info("AdminActor is doing something.")
+          Behaviors.same
+      }
+    }
+  }
+
+  // Similarly define other actors like MailActor, LogsActor, etc.
+  // For brevity, only AdminActor is shown here
+
+  // Service Layer to hold ActorRefs
+  trait ActorService {
+    val adminActor: ActorRef[AdminActor.Command]
+    // Add other actor refs here
+  }
+
+  object ActorService {
+    def make: ZLayer[Any, Nothing, ActorService] = ZLayer {
+      for {
+        system <- ZIO.environment[ActorSystem.Service]
+        adminActor <- system.make(AdminActor.behavior, name = "supervised-admin")
+        // Initialize other actors similarly
+      } yield new ActorService {
+        override val adminActor: ActorRef[AdminActor.Command] = adminActor
+        // Assign other actor refs here
+      }
+    }
+  }
+
+  // Layer for ActorSystem
+  val actorSystemLayer: ZLayer[Any, Nothing, ActorSystem.Service] = ZLayer.scoped {
+    ActorSystemSupervisor.live("tilli")
+  }
+
+  // HTTP Routes using ZIO-HTTP
+  def httpApp(actorService: ActorService, config: AppConfig): HttpApp[Any, Throwable] = {
+    val routes = Http.collectZIO[Request] {
+      case Method.GET -> !! / "hello" =>
+        for {
+          _ <- actorService.adminActor ! AdminActor.DoSomething
+          resp <- ZIO.succeed(Response.text("Hello, World!"))
+        } yield resp
+      // Define other routes here
+    }
+
+    routes
+  }
+
+  // Main application logic
+  val program: ZIO[ActorService with RedisService with AppConfig, Throwable, Unit] = for {
+    config <- ZIO.service[AppConfig]
+    actorService <- ZIO.service[ActorService]
+    redisService <- ZIO.service[RedisService]
+    _ <- printEnv(config)
+    // Initialize Redis Commands if needed
+    _ <- ZIO.succeed {
+      // Example usage of Redis
+      val redisValue = redisService.commands.get("some_key")
+      println(s"Value from Redis: $redisValue")
+    }
+    // Start HTTP server
+    _ <- Server.serve(httpApp(actorService, config)).provide(Server.defaultWithPort(config.httpPort))
+  } yield ()
+
+  // Helper method to print environment
+  def printEnv(config: AppConfig): UIO[Unit] = UIO {
     println("... Inside tilli ...")
     println(
-      "\n projectName --> " + projectName +
-        "\n confFile --> " + confFile +
-        "\n envServer --> " + envServer +
-        "\n fileSystemType --> " + fileSystemType +
-        "\n fileSystemPath --> " + fileSystemPath +
-        "\n projectPrefix --> " + projectPrefix +
-        "\n akkaPort --> " + akkaPort +
-        "\n httpPort --> " + httpPort +
-        "\n akkaManagementPort --> " + akkaManagementPort +
-        "\n httpHostName --> " + httpHostName +
-        "\n akkaManagementHostName --> " + akkaManagementHostName +
-        "\n frontEndPath --> " + frontEndPath
-    )
+      s"""
+         | projectName --> ${config.projectName}
+         | confFile --> ${config.confFile}
+         | envServer --> ${config.envServer}
+         | fileSystemType --> ${config.fileSystemType}
+         | fileSystemPath --> ${config.fileSystemPath}
+         | projectPrefix --> ${config.projectPrefix}
+         | akkaPort --> ${config.akkaPort}
+         | httpPort --> ${config.httpPort}
+         | akkaManagementPort --> ${config.akkaManagementPort}
+         | httpHostName --> ${config.httpHostName}
+         | akkaManagementHostName --> ${config.akkaManagementHostName}
+         | frontEndPath --> ${config.frontEndPath}
+         |""".stripMargin)
   }
 
-  def createDir(folderPath: String): Unit = {
-    val existDir = new File(folderPath)
-    if (!existDir.exists) existDir.mkdirs()
+  // Define the application layers
+  override def run: URIO[Any with ZIOAppArgs with Scope, ExitCode] = {
+    program
+      .provide(
+        appConfigLayer,
+        actorSystemLayer,
+        ActorService.make,
+        redisLayer
+      )
+      .exitCode
   }
-
-
-  def getImages(subDir: String, fileName: String): File = {
-    val path1 = StarterMain.fileSystemPath + "/" + subDir + "/" + fileName
-    val file = new File(path1)
-    return file
-  }
-
- def deleteFilePath(path: String) = {
-    val fileTemp = new File(path)
-    if (fileTemp.exists) {
-       fileTemp.delete()
-    }
-  }
-
-   def fileExistCheck(text: String): Boolean = {
-    var bool = false
-    val fileTemp = new File(text)
-    if (fileTemp.exists) {
-      bool = true
-    }
-    bool
-  }
-
-}
-
-
-class StarterMain {
-
 }

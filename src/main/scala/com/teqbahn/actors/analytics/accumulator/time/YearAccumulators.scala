@@ -1,73 +1,62 @@
 package com.teqbahn.actors.analytics.accumulator.time
 
-import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{Actor, ActorContext, ActorRef, PoisonPill, ReceiveTimeout}
-import com.teqbahn.bootstrap.StarterMain.redisCommands
 import com.teqbahn.caseclasses.{AddToAccumulationWrapper, AddUserAttemptAccumulationWrapper}
 import com.teqbahn.global.ZiRedisCons
 import com.teqbahn.utils.ZiFunctions
-import org.json4s.NoTypeHints
-import org.json4s.native.Serialization
+import org.json4s.{NoTypeHints, native}
+import zio._
+import zio.redis._
+import zio.redis.api._
+import zio.duration._
 
-class YearAccumulators extends Actor {
-  var actorSystem = this.context.system
-  implicit val formats = Serialization.formats(NoTypeHints)
-  var indexExist = false;
-  var unquieUserindexExist = false;
-  var attemptIndexExist = false;
+object YearAccumulators {
 
-  override def preStart(): Unit = {
-    ZiFunctions.printNodeInfo(self, "YearAccumulators Started")
+  implicit val formats = native.Serialization.formats(NoTypeHints)
+
+  def start: ZIO[Any, Nothing, Unit] =
+    ZiFunctions.printNodeInfo("YearAccumulators Started") *> runAccumulatorLoop
+
+  def runAccumulatorLoop: ZIO[Any, Nothing, Unit] =
+    ZIO.never.catchAll(_ => ZIO.unit)
+
+  def handleAddToAccumulation(request: AddToAccumulationWrapper): ZIO[Redis, RedisError, Unit] = {
+    val index = ZiRedisCons.ACCUMULATOR_YearUserCounter + request.id
+    for {
+      exists <- get(index)
+      _ <- exists match {
+        case Some(_) => ZIO.unit
+        case None => set(index, "0")
+      }
+      _ <- incr(index)
+    } yield ()
   }
 
-  def receive: Receive = {
-    case request: AddToAccumulationWrapper =>
-      val index = ZiRedisCons.ACCUMULATOR_YearUserCounter + request.id
-      if (!indexExist) {
-        val counter = redisCommands.get(index)
-        if (counter != null && !counter.equalsIgnoreCase("null") && !counter.isEmpty) {
-        } else {
-          redisCommands.set(index, "0")
-        }
-        indexExist = true
+  def handleAddUserAttemptAccumulation(request: AddUserAttemptAccumulationWrapper): ZIO[Redis, RedisError, Unit] = {
+    val index = ZiRedisCons.ACCUMULATOR_YearUserAttemptCounter + request.id
+    val uniqueUserIndex = ZiRedisCons.ACCUMULATOR_YearUniqueUserAttemptCounter + request.id
+    for {
+      attemptExists <- get(index)
+      _ <- attemptExists match {
+        case Some(_) => ZIO.unit
+        case None => set(index, "0")
       }
-      redisCommands.incr(index)
+      _ <- incr(index)
 
-    case request: AddUserAttemptAccumulationWrapper =>
-      val index = ZiRedisCons.ACCUMULATOR_YearUserAttemptCounter + request.id
-      if (!attemptIndexExist) {
-        val counter = redisCommands.get(index)
-        if (counter != null && !counter.equalsIgnoreCase("null") && !counter.isEmpty) {
-        } else {
-          redisCommands.set(index, "0")
-        }
-        attemptIndexExist = true
-      }
-      redisCommands.incr(index)
-
-      if (!redisCommands.sismember(ZiRedisCons.ACCUMULATOR_YearUniqueUserAttemptSet + request.id, request.accumulator.userid)) {
-        redisCommands.sadd(ZiRedisCons.ACCUMULATOR_YearUniqueUserAttemptSet + request.id, request.accumulator.userid)
-
-
-        val uniqueUserIndex = ZiRedisCons.ACCUMULATOR_YearUniqueUserAttemptCounter + request.id
-        if (!unquieUserindexExist) {
-          val uniqueUsercounter = redisCommands.get(uniqueUserIndex)
-          if (uniqueUsercounter != null && !uniqueUsercounter.equalsIgnoreCase("null") && !uniqueUsercounter.isEmpty) {
-          } else {
-            redisCommands.set(uniqueUserIndex, "0")
+      isUnique <- sismember(ZiRedisCons.ACCUMULATOR_YearUniqueUserAttemptSet + request.id, request.accumulator.userid)
+      _ <- if (!isUnique) {
+        for {
+          _ <- sadd(ZiRedisCons.ACCUMULATOR_YearUniqueUserAttemptSet + request.id, request.accumulator.userid)
+          uniqueExists <- get(uniqueUserIndex)
+          _ <- uniqueExists match {
+            case Some(_) => ZIO.unit
+            case None => set(uniqueUserIndex, "0")
           }
-          unquieUserindexExist = true
-        }
-        redisCommands.incr(uniqueUserIndex)
-
-
-      }
-
-
-    case ReceiveTimeout =>  context.stop(self)
+          _ <- incr(uniqueUserIndex)
+        } yield ()
+      } else ZIO.unit
+    } yield ()
   }
 
-
-
-
+  def onTimeout: ZIO[Any, Nothing, Unit] =
+    ZIO.logInfo("YearAccumulators stopping due to timeout")
 }

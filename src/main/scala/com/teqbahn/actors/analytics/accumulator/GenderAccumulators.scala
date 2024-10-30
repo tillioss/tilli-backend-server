@@ -1,35 +1,40 @@
-package com.teqbahn.actors.analytics.accumulator
-
-import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{Actor, ActorContext, ActorRef, PoisonPill, ReceiveTimeout}
-import com.teqbahn.bootstrap.StarterMain.redisCommands
+import zio._
+import zio.redis._
 import com.teqbahn.caseclasses.AddToAccumulationWrapper
 import com.teqbahn.global.ZiRedisCons
-import org.json4s.NoTypeHints
-import org.json4s.native.Serialization
+import zio.json._
+import zio.redis.api._
 
-class GenderAccumulators extends Actor {
-  var actorSystem = this.context.system
-  implicit val formats = Serialization.formats(NoTypeHints)
-  var indexExist = false;
+case class GenderAccumulators(redis: Redis.Service) {
 
-  def receive: Receive = {
-    case request: AddToAccumulationWrapper =>
-      val index = ZiRedisCons.ACCUMULATOR_GenderUserCounter + request.id
-      if (!indexExist) {
-        val counter = redisCommands.get(index)
-        if (counter != null && !counter.equalsIgnoreCase("null") && !counter.isEmpty) {
-        } else {
-          redisCommands.set(index, "0")
-        }
-        indexExist = true
+  def handleRequest(request: AddToAccumulationWrapper): ZIO[Any, RedisError, Unit] = {
+    val index = ZiRedisCons.ACCUMULATOR_GenderUserCounter + request.id
+
+    // Check if index exists, if not set it to 0, then increment
+    for {
+      exists <- redis.get(index)
+      _ <- exists match {
+        case Some(_) => ZIO.unit // Key exists, do nothing
+        case None => redis.set(index, "0") // Set the key if it doesn't exist
       }
-      redisCommands.incr(index)
-
-    case ReceiveTimeout =>  context.stop(self)
+      _ <- redis.incr(index)
+    } yield ()
   }
 
+  // Timeout handler could be represented by some scheduled ZIO operation or cleanup mechanism
+  def handleTimeout: ZIO[Any, Nothing, Unit] = ZIO.succeed(println("Timeout occurred, stopping the actor"))
 
+}
 
+object GenderAccumulators {
 
+  def create: ZLayer[Redis, Nothing, GenderAccumulators] = ZLayer.fromFunction { redis =>
+    GenderAccumulators(redis.get)
+  }
+
+  // Example usage in a ZIO runtime
+  def runProgram(request: AddToAccumulationWrapper): ZIO[GenderAccumulators, RedisError, Unit] = for {
+    genderAccumulators <- ZIO.service[GenderAccumulators]
+    _ <- genderAccumulators.handleRequest(request)
+  } yield ()
 }

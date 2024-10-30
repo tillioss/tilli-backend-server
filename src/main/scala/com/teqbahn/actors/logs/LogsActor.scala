@@ -1,78 +1,83 @@
-package com.teqbahn.actors.logs
-
-import akka.actor.{Actor, ActorRef}
-import com.teqbahn.bootstrap.StarterMain.redisCommands
-import com.teqbahn.caseclasses.{AddToAccumulationRequest, CaptureLogsRequestWrapper, CaptureLogsResponse, GetWebLogsRequest, GetWebLogsResponse, LogsData}
-import com.teqbahn.global.{GlobalMessageConstants, ZiRedisCons}
-import org.json4s.NoTypeHints
-import org.json4s.jackson.Serialization.{read, write}
-import org.json4s.native.Serialization
-
+import zio._
+import zio.redis._
+import zio.json._
+import zio.console._
 import java.sql.Timestamp
 import java.util.Date
-import scala.collection.immutable.ListMap
-import scala.collection.mutable.ListBuffer
+import java.text.SimpleDateFormat
 
-class LogsActor extends Actor {
-  implicit val formats = Serialization.formats(NoTypeHints)
+// Define case classes
+case class LogsData(logsJson: String, createdAt: Long)
+object LogsData {
+  implicit val logsDataCodec: JsonCodec[LogsData] = DeriveJsonCodec.gen[LogsData]
+}
 
-  import scala.collection.JavaConverters._
+case class CaptureLogsRequestWrapper(id: String, captureLogsRequest: CaptureLogsRequest)
+case class CaptureLogsRequest(logsJson: String)
+case class CaptureLogsResponse(response: String)
+case class GetWebLogsRequest(auth: String, noOfPage: Int, pageLimit: Int)
+case class GetWebLogsResponse(resultData: Map[String, LogsData], totalSize: Long)
 
-  def receive = {
+object GlobalMessageConstants {
+  val SUCCESS = "SUCCESS"
+  val FAILURE = "FAILURE"
+  val AUTH_TEXT = "AUTH_TEXT"
+}
 
+// LogsActor Service
+trait LogsActor {
+  def handleCaptureLogs(request: CaptureLogsRequestWrapper): UIO[CaptureLogsResponse]
+  def handleGetWebLogs(request: GetWebLogsRequest): UIO[GetWebLogsResponse]
+}
 
-    case captureLogsRequestWrapper: CaptureLogsRequestWrapper => {
-      var captureLogsRequest = captureLogsRequestWrapper.captureLogsRequest
+object LogsActor {
 
-      var reponse = GlobalMessageConstants.FAILURE
-
-      val createdAt = new Timestamp((new Date).getTime).getTime
-
-      var logsData = LogsData(captureLogsRequest.logsJson, createdAt)
-      redisCommands.hset(ZiRedisCons.LOGS_webLog, captureLogsRequestWrapper.id, write(logsData))
-      redisCommands.lpush(ZiRedisCons.LOGS_webLogList, captureLogsRequestWrapper.id)
-      redisCommands.lpush(ZiRedisCons.LOGS_webLogBasedOnDate, getDateFormateStr(createdAt), captureLogsRequestWrapper.id)
-
-      reponse = GlobalMessageConstants.SUCCESS
-
-      sender() ! CaptureLogsResponse(reponse)
-
-
+  def live(redis: Redis): ZLayer[Any, Throwable, LogsActor] =
+    ZLayer.fromFunction { (redis: Redis) =>
+      new LogsActorImpl(redis)
     }
-    case getWebLogsRequest: GetWebLogsRequest =>
-      var resultData: ListMap[String, LogsData] = ListMap.empty
-      var totalSize: Long = 0
-      if (getWebLogsRequest.auth.equalsIgnoreCase(GlobalMessageConstants.AUTH_TEXT)) {
-        val fromIndex = (getWebLogsRequest.noOfPage - 1) * getWebLogsRequest.pageLimit;
-        totalSize = redisCommands.llen(ZiRedisCons.LOGS_webLogList)
-        if (totalSize > 0) {
-          if (totalSize > fromIndex) {
-            val lisOfIds = redisCommands.lrange(ZiRedisCons.LOGS_webLogList, fromIndex, Math.min((getWebLogsRequest.noOfPage * getWebLogsRequest.pageLimit), totalSize) - 1).asScala.toList
-            for (logId <- lisOfIds) {
+}
 
-              val logsDataStr = redisCommands.hget(ZiRedisCons.LOGS_webLog, logId)
-              val logsData = read[LogsData](logsDataStr)
-              resultData += (logId -> logsData)
+class LogsActorImpl(redis: Redis) extends LogsActor {
 
+  def handleCaptureLogs(request: CaptureLogsRequestWrapper): UIO[CaptureLogsResponse] = {
+    val createdAt = new Timestamp(new Date().getTime).getTime
+    val logsData = LogsData(request.captureLogsRequest.logsJson, createdAt)
+    val dateFormat = getDateFormatStr(createdAt)
 
-            }
-          }
+    for {
+      _ <- redis.hset("webLog", request.id, logsData.toJson)
+      _ <- redis.lpush("webLogList", request.id)
+      _ <- redis.lpush("webLogBasedOnDate", dateFormat, request.id)
+    } yield CaptureLogsResponse(GlobalMessageConstants.SUCCESS)
+  }
+
+  def handleGetWebLogs(request: GetWebLogsRequest): UIO[GetWebLogsResponse] = {
+    if (request.auth.equalsIgnoreCase(GlobalMessageConstants.AUTH_TEXT)) {
+      val fromIndex = (request.noOfPage - 1) * request.pageLimit
+
+      for {
+        totalSize <- redis.llen("webLogList")
+        resultData <- if (totalSize > 0 && totalSize > fromIndex) {
+          val toIndex = Math.min((request.noOfPage * request.pageLimit), totalSize) - 1
+          for {
+            ids <- redis.lrange("webLogList", fromIndex, toIndex)
+            logsDataStrs <- ZIO.foreach(ids)(id => redis.hget("webLog", id))
+            logsDataMap = logsDataStrs.zip(ids).collect {
+              case (Some(dataStr), id) => id -> dataStr.fromJson[LogsData].getOrElse(LogsData("", 0))
+            }.toMap
+          } yield (logsDataMap, totalSize)
+        } else {
+          ZIO.succeed((Map.empty[String, LogsData], totalSize))
         }
-      }
-      sender() ! GetWebLogsResponse(resultData, totalSize)
-
-
+      } yield GetWebLogsResponse(resultData, totalSize)
+    } else {
+      ZIO.succeed(GetWebLogsResponse(Map.empty, 0))
+    }
   }
 
-  def getDateFormateStr(time: Long): String = {
-    import java.text.SimpleDateFormat
-    val simpleDateFormat = new SimpleDateFormat("YYY-MM-dd")
-    val format = simpleDateFormat.format(time).toString
-    format
-    /* val formatArray = format.split("-")
-     formatArray*/
-    // AccumulationDate(formatArray(0), formatArray(0)+ "-"+ formatArray(1), format)
+  private def getDateFormatStr(time: Long): String = {
+    val simpleDateFormat = new SimpleDateFormat("YYYY-MM-dd")
+    simpleDateFormat.format(time)
   }
-
-
 }

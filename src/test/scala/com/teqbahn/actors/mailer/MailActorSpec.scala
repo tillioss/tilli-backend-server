@@ -1,18 +1,41 @@
-package com.teqbahn.actors.mailer
+import zio._
+import zio.test._
+import zio.test.Assertion._
+import zio.test.environment._
+import zio.console.Console
+import zio.test.mock._
+import com.teqbahn.actors.mailer.MailActor
+import com.teqbahn.actors.mailer.MailActor.SendEmail
+import com.teqbahn.caseclasses.EmailRequest
+import zio.test.mock.Proxy
+import zio.test.mock.Mockable
+import zio.test.mock.Mock
 
-import akka.actor.ActorSystem
-import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import org.scalatest.BeforeAndAfterAll
-import org.scalatest.flatspec.AnyFlatSpecLike
+object MailActorSpec extends DefaultRunnableSpec {
 
-class MailActorSpec extends TestKit(ActorSystem("MailActorSpec"))
-  with ImplicitSender
-  with AnyFlatSpecLike
-  with BeforeAndAfterAll {
-
-  override def afterAll: Unit = {
-    TestKit.shutdownActorSystem(system)
+  // Mocked service to replace real dependencies
+  trait MockMailService {
+    def sendEmail(request: EmailRequest): UIO[Unit]
   }
 
-  // Your test cases for MailActor can be written here
+  object MockMailService {
+    def mock: ULayer[MockMailService] = ZLayer.succeed(new MockMailService {
+      def sendEmail(request: EmailRequest): UIO[Unit] = UIO.unit
+    })
+  }
+
+  def spec: Spec[Environment with Console with TestEnvironment, Any] = suite("MailActorSpec")(
+    testM("should send email correctly") {
+      // Arrange
+      val emailRequest = EmailRequest("to@example.com", "Subject", "Body")
+      val mockMailService = MockMailService.mock
+      val mailActor = new MailActor(mockMailService)
+
+      // Act
+      val result = mailActor.sendEmail(emailRequest).provideLayer(mockMailService)
+
+      // Assert
+      assertM(result)(equalTo(()))
+    }
+  )
 }
