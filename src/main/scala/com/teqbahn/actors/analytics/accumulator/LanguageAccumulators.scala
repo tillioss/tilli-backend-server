@@ -1,35 +1,43 @@
-package com.teqbahn.actors.analytics.accumulator
+import zio._
+import zio.json._
+import zio.redis._
 
-import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{Actor, ActorContext, ActorRef, PoisonPill, ReceiveTimeout}
-import com.teqbahn.bootstrap.StarterMain.redisCommands
 import com.teqbahn.caseclasses.AddToAccumulationWrapper
 import com.teqbahn.global.ZiRedisCons
-import org.json4s.NoTypeHints
-import org.json4s.native.Serialization
 
-class LanguageAccumulators extends Actor {
-  var actorSystem = this.context.system
-  implicit val formats = Serialization.formats(NoTypeHints)
-  var indexExist = false;
-
-  def receive: Receive = {
-    case request: AddToAccumulationWrapper =>
-      val index = ZiRedisCons.ACCUMULATOR_LanguageUserCounter + request.id
-      if (!indexExist) {
-        val counter = redisCommands.get(index)
-        if (counter != null && !counter.equalsIgnoreCase("null") && !counter.isEmpty) {
-        } else {
-          redisCommands.set(index, "0")
-        }
-        indexExist = true
-      }
-      redisCommands.incr(index)
-
-    case ReceiveTimeout =>  context.stop(self)
+object LanguageAccumulators {
+  trait Service {
+    def addToAccumulation(request: AddToAccumulationWrapper): Task[Unit]
   }
 
+  case class State(indexExist: Boolean = false)
 
+  class Live(redis: Redis, state: Ref[State]) extends Service {
+    override def addToAccumulation(request: AddToAccumulationWrapper): Task[Unit] = {
+      val index = ZiRedisCons.ACCUMULATOR_LanguageUserCounter + request.id
+      for {
+        s <- state.get
+        _ <- if (!s.indexExist) initializeCounter(index) else ZIO.unit
+        _ <- state.update(_.copy(indexExist = true))
+        _ <- redis.incr(index)
+      } yield ()
+    }
 
+    private def initializeCounter(index: String): Task[Unit] = {
+      redis.get(index).flatMap {
+        case Some(value) if value.nonEmpty && value != "null" => ZIO.unit
+        case _ => redis.set(index, "0")
+      }
+    }
+  }
 
+  val live: ZLayer[Redis, Nothing, LanguageAccumulators.Service] = ZLayer.fromZIO(
+    for {
+      redis <- ZIO.service[Redis]
+      state <- Ref.make(State())
+    } yield new Live(redis, state)
+  )
+
+  def addToAccumulation(request: AddToAccumulationWrapper): ZIO[LanguageAccumulators.Service, Throwable, Unit] =
+    ZIO.serviceWithZIO[Service](_.addToAccumulation(request))
 }

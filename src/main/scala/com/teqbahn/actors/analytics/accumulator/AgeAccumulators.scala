@@ -1,35 +1,35 @@
 package com.teqbahn.actors.analytics.accumulator
 
-import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{Actor, ActorContext, ActorRef, PoisonPill, ReceiveTimeout}
-import com.teqbahn.bootstrap.StarterMain.redisCommands
 import com.teqbahn.caseclasses.AddToAccumulationWrapper
 import com.teqbahn.global.ZiRedisCons
-import org.json4s.NoTypeHints
-import org.json4s.native.Serialization
+import org.json4s.{NoTypeHints, native}
+import zio._
+import zio.redis._
+import zio.redis.api._
+import zio.duration._
 
-class AgeAccumulators extends Actor {
-  var actorSystem = this.context.system
-  implicit val formats = Serialization.formats(NoTypeHints)
-  var indexExist = false;
+object AgeAccumulators {
 
-  def receive: Receive = {
-    case request: AddToAccumulationWrapper =>
-      val index = ZiRedisCons.ACCUMULATOR_AgeUserCounter + request.id
-      if (!indexExist) {
-        val counter = redisCommands.get(index)
-        if (counter != null && !counter.equalsIgnoreCase("null") && !counter.isEmpty) {
-        } else {
-          redisCommands.set(index, "0")
-        }
-        indexExist = true
+  implicit val formats = native.Serialization.formats(NoTypeHints)
+
+  def start: ZIO[Any, Nothing, Unit] =
+    runAccumulatorLoop
+
+  def runAccumulatorLoop: ZIO[Any, Nothing, Unit] =
+    ZIO.never.catchAll(_ => ZIO.unit)
+
+  def handleAddToAccumulation(request: AddToAccumulationWrapper): ZIO[Redis, RedisError, Unit] = {
+    val index = ZiRedisCons.ACCUMULATOR_AgeUserCounter + request.id
+    for {
+      exists <- get(index)
+      _ <- exists match {
+        case Some(_) => ZIO.unit
+        case None => set(index, "0")
       }
-      redisCommands.incr(index)
-
-    case ReceiveTimeout =>  context.stop(self)
+      _ <- incr(index)
+    } yield ()
   }
 
-
-
-
+  def onTimeout: ZIO[Any, Nothing, Unit] =
+    ZIO.logInfo("AgeAccumulators stopping due to timeout")
 }

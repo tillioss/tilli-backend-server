@@ -14,27 +14,15 @@ jvmOptions in MultiJvm := Seq("-Xmx256M")
 
 enablePlugins(JavaServerAppPackaging, DockerPlugin)
 
-val akkaVersion = "2.6.3"
-val akkaHttpVersion = "10.1.11"
-val akkaManagementVersion = "1.0.5"
 val logbackVersion = "1.2.3"
 
 libraryDependencies ++=Seq(
-  "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-  "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-  "com.typesafe.akka" %% "akka-http-core" % akkaHttpVersion,
-  "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-  "com.typesafe.akka" %% "akka-http-xml" % akkaHttpVersion,
-  "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
-  "ch.qos.logback" % "logback-classic" % logbackVersion,
-  "ch.megard" %% "akka-http-cors" % "0.4.1",
-  "com.typesafe.akka" %% "akka-actor" % akkaVersion,
-  "com.typesafe.akka" %% "akka-http-jackson" % akkaHttpVersion,
-  "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion,
-  "org.json4s" %% "json4s-native" % "3.6.7",
-  "org.json4s" %% "json4s-jackson" % "3.6.7",
-  "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-  "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
+  "dev.zio" %% "zio" % "2.0.15",
+  "dev.zio" %% "zio-streams" % "2.0.15",
+  "dev.zio" %% "zio-actors" % "2.0.0",
+  "io.lettuce" % "lettuce-core" % "6.2.4.RELEASE",
+  "dev.zio" %% "zio-http" % "3.0.0",
+  "com.typesafe" % "config" % "1.4.2"
   "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
   "commons-io" % "commons-io" % "2.6",
   "commons-lang" % "commons-lang" % "2.6",
@@ -70,6 +58,3 @@ assemblyMergeStrategy in assembly := {
 // ALPN agent, only required on JVM 8
 enablePlugins(JavaAgent)
 javaAgents += "org.mortbay.jetty.alpn" % "jetty-alpn-agent" % "2.0.9" % "runtime;test"
-
-
-

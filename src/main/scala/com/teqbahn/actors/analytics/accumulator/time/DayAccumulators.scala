@@ -1,76 +1,73 @@
-package com.teqbahn.actors.analytics.accumulator.time
-
-import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{Actor, ActorContext, ActorRef, PoisonPill, ReceiveTimeout}
-import com.teqbahn.bootstrap.StarterMain.redisCommands
+import zio._
+import zio.redis._
 import com.teqbahn.caseclasses.{AddToAccumulationWrapper, AddUserAttemptAccumulationWrapper}
 import com.teqbahn.global.ZiRedisCons
 import com.teqbahn.utils.ZiFunctions
-import org.json4s.NoTypeHints
-import org.json4s.native.Serialization
 
-class DayAccumulators extends Actor {
-  var actorSystem = this.context.system
-  implicit val formats = Serialization.formats(NoTypeHints)
-  var indexExist = false;
-  var attemptIndexExist = false;
-  var unquieUserindexExist = false;
+case class DayAccumulators(redis: Redis.Service, indexExist: Ref[Boolean], attemptIndexExist: Ref[Boolean], uniqueUserIndexExist: Ref[Boolean]) {
 
-  override def preStart(): Unit = {
-    ZiFunctions.printNodeInfo(self, "DayAccumulators Started")
+  def addToAccumulation(request: AddToAccumulationWrapper): ZIO[Any, RedisError, Unit] = {
+    val index = ZiRedisCons.ACCUMULATOR_DayUserCounter + request.id
+    
+    // Check if index exists and set initial value if necessary
+    for {
+      exists <- indexExist.get
+      _ <- ZIO.when(!exists) {
+        redis.get(index).flatMap {
+          case Some(_) => ZIO.unit
+          case None    => redis.set(index, "0")
+        } *> indexExist.set(true)
+      }
+      _ <- redis.incr(index)
+    } yield ()
   }
 
-  override def postStop(): Unit = {
-    ZiFunctions.printNodeInfo(self, "DayAccumulators got PoisonPill")
-  }
+  def addUserAttempt(request: AddUserAttemptAccumulationWrapper): ZIO[Any, RedisError, Unit] = {
+    val index = ZiRedisCons.ACCUMULATOR_DayUserAttemptCounter + request.id
+    val uniqueUserIndex = ZiRedisCons.ACCUMULATOR_DayUniqueUserAttemptCounter + request.id
+    val uniqueUserSet = ZiRedisCons.ACCUMULATOR_DayUniqueUserAttemptSet + request.id
 
-  def receive: Receive = {
-    case request: AddToAccumulationWrapper =>
-      val index = ZiRedisCons.ACCUMULATOR_DayUserCounter + request.id
-      if (!indexExist) {
-        val counter = redisCommands.get(index)
-        if (counter != null && !counter.equalsIgnoreCase("null") && !counter.isEmpty) {
-        } else {
-          redisCommands.set(index, "0")
-        }
-        indexExist = true
+    // Handle user attempt accumulation
+    for {
+      exists <- attemptIndexExist.get
+      _ <- ZIO.when(!exists) {
+        redis.get(index).flatMap {
+          case Some(_) => ZIO.unit
+          case None    => redis.set(index, "0")
+        } *> attemptIndexExist.set(true)
       }
-      redisCommands.incr(index)
+      _ <- redis.incr(index)
 
-    case request: AddUserAttemptAccumulationWrapper =>
-      val index = ZiRedisCons.ACCUMULATOR_DayUserAttemptCounter + request.id
-      if (!attemptIndexExist) {
-        val counter = redisCommands.get(index)
-        if (counter != null && !counter.equalsIgnoreCase("null") && !counter.isEmpty) {
-        } else {
-          redisCommands.set(index, "0")
-        }
-        attemptIndexExist = true
-      }
-      redisCommands.incr(index)
-
-      if (!redisCommands.sismember(ZiRedisCons.ACCUMULATOR_DayUniqueUserAttemptSet + request.id, request.accumulator.userid)) {
-        redisCommands.sadd(ZiRedisCons.ACCUMULATOR_DayUniqueUserAttemptSet + request.id, request.accumulator.userid)
-
-
-        val uniqueUserIndex = ZiRedisCons.ACCUMULATOR_DayUniqueUserAttemptCounter + request.id
-        if (!unquieUserindexExist) {
-          val uniqueUsercounter = redisCommands.get(uniqueUserIndex)
-          if (uniqueUsercounter != null && !uniqueUsercounter.equalsIgnoreCase("null") && !uniqueUsercounter.isEmpty) {
-          } else {
-            redisCommands.set(uniqueUserIndex, "0")
+      // Handle unique user accumulation
+      isMember <- redis.sismember(uniqueUserSet, request.accumulator.userid)
+      _ <- ZIO.when(!isMember) {
+        for {
+          _ <- redis.sadd(uniqueUserSet, request.accumulator.userid)
+          existsUnique <- uniqueUserIndexExist.get
+          _ <- ZIO.when(!existsUnique) {
+            redis.get(uniqueUserIndex).flatMap {
+              case Some(_) => ZIO.unit
+              case None    => redis.set(uniqueUserIndex, "0")
+            } *> uniqueUserIndexExist.set(true)
           }
-          unquieUserindexExist = true
-        }
-        redisCommands.incr(uniqueUserIndex)
-
-
+          _ <- redis.incr(uniqueUserIndex)
+        } yield ()
       }
-
-
-    case ReceiveTimeout => context.stop(self)
+    } yield ()
   }
 
+}
 
+object DayAccumulators {
+
+  def create: ZLayer[Redis, Nothing, DayAccumulators] = 
+    ZLayer {
+      for {
+        redisService <- ZIO.service[Redis.Service]
+        indexExist <- Ref.make(false)
+        attemptIndexExist <- Ref.make(false)
+        uniqueUserIndexExist <- Ref.make(false)
+      } yield DayAccumulators(redisService, indexExist, attemptIndexExist, uniqueUserIndexExist)
+    }
 
 }
