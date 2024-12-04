@@ -2,8 +2,8 @@ package com.teqbahn.actors.admin
 
 import java.io.File
 import java.util.{Date, Random, UUID}
-import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{Actor, ActorContext, ActorRef, PoisonPill, Props, ReceiveTimeout}
+import org.apache.pekko.actor.SupervisorStrategy.Stop
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, PoisonPill, Props, ReceiveTimeout}
 import com.teqbahn.bootstrap.StarterMain
 import com.teqbahn.caseclasses._
 import com.teqbahn.global.{Encryption, GlobalConstants, GlobalMessageConstants, ZiRedisCons}

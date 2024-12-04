@@ -1,6 +1,6 @@
 package com.teqbahn.actors.analytics.result
 
-import akka.actor.{Actor, PoisonPill}
+import org.apache.pekko.actor.{Actor, PoisonPill}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.teqbahn.bootstrap.StarterMain
 import com.teqbahn.bootstrap.StarterMain.redisCommands

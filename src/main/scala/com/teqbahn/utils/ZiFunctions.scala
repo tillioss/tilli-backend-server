@@ -1,7 +1,7 @@
 package com.teqbahn.utils
 
 import java.util.{Date, UUID}
-import akka.actor.ActorRef
+import org.apache.pekko.actor.ActorRef
 import org.json4s.jackson.JsonMethods.parse
 
 import java.sql.Timestamp

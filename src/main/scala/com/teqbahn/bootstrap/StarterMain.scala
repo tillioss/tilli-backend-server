@@ -1,10 +1,10 @@
 package com.teqbahn.bootstrap
 
 import java.io.{File}
-import akka.actor.{ActorRef, ActorSystem, Props}
-import akka.http.scaladsl.{Http}
-//import akka.management.scaladsl.AkkaManagement
-import akka.stream.{ActorMaterializer}
+import org.apache.pekko.actor.{ActorRef, ActorSystem, Props}
+import org.apache.pekko.http.scaladsl.{Http}
+//import org.apache.pekko.management.scaladsl.AkkaManagement
+import org.apache.pekko.stream.{ActorMaterializer}
 import com.typesafe.config.{Config, ConfigFactory}
 import com.teqbahn.actors.admin.AdminActor
 import com.teqbahn.actors.analytics.Accumulators
@@ -128,7 +128,7 @@ object StarterMain {
     accumulatorResultActorRef = actorSystem.actorOf(Props.create(classOf[ResultAccumulator]), "actor-accumulator-result")
 
 
-    Http().bindAndHandle(AkkaHttpConnector.getRoutes(materializer, actorSystem, projectPrefix, akkaManagementHostName), httpHostName, httpPort)
+    Http().bindAndHandle(PekkoHttpConnector.getRoutes(materializer, actorSystem, projectPrefix, akkaManagementHostName), httpHostName, httpPort)
     println(s"Server online at http://" + httpHostName + ":" + httpPort + "/\nPress RETURN to stop...")
 
   }

@@ -1,7 +1,7 @@
 package com.teqbahn.actors.analytics
 
-import akka.actor.SupervisorStrategy.Stop
-import akka.actor.{Actor, ActorContext, ActorRef, PoisonPill, ReceiveTimeout}
+import org.apache.pekko.actor.SupervisorStrategy.Stop
+import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, PoisonPill, ReceiveTimeout}
 import com.teqbahn.bootstrap.StarterMain
 import com.teqbahn.bootstrap.StarterMain.redisCommands
 import com.teqbahn.caseclasses.{AccumulationDate, AddToAccumulationRequest, AddToAccumulationWrapper, AddToFilterAccumulationWrapper, AddUserAttemptAccumulationRequest, AddUserAttemptAccumulationWrapper, UpdateUserDetailsAccumulationRequest, User, UserAccumulation}

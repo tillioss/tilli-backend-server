@@ -14,32 +14,30 @@ jvmOptions in MultiJvm := Seq("-Xmx256M")
 
 enablePlugins(JavaServerAppPackaging, DockerPlugin)
 
-val akkaVersion = "2.6.3"
-val akkaHttpVersion = "10.1.11"
-val akkaManagementVersion = "1.0.5"
+val pekkoVersion = "1.0.2"
+val pekkoHttpVersion = "1.0.1"
 val logbackVersion = "1.2.3"
 
 libraryDependencies ++=Seq(
-  "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-  "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-  "com.typesafe.akka" %% "akka-http-core" % akkaHttpVersion,
-  "com.typesafe.akka" %% "akka-http" % akkaHttpVersion,
-  "com.typesafe.akka" %% "akka-http-xml" % akkaHttpVersion,
-  "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
+  "org.apache.pekko" %% "pekko-slf4j" % pekkoVersion,
+  "org.apache.pekko" %% "pekko-stream" % pekkoVersion,
+  "org.apache.pekko" %% "pekko-http-core" % pekkoHttpVersion,
+  "org.apache.pekko" %% "pekko-http" % pekkoHttpVersion,
+  "org.apache.pekko" %% "pekko-http-xml" % pekkoHttpVersion,
+  "org.apache.pekko" %% "pekko-http-spray-json" % pekkoHttpVersion,
   "ch.qos.logback" % "logback-classic" % logbackVersion,
-  "ch.megard" %% "akka-http-cors" % "0.4.1",
-  "com.typesafe.akka" %% "akka-actor" % akkaVersion,
-  "com.typesafe.akka" %% "akka-http-jackson" % akkaHttpVersion,
-  "com.typesafe.akka" %% "akka-serialization-jackson" % akkaVersion,
+  "org.apache.pekko" %% "pekko-http-cors" % pekkoHttpVersion,
+  "org.apache.pekko" %% "pekko-actor" % pekkoVersion,
+  "org.apache.pekko" %% "pekko-http-jackson" % pekkoHttpVersion,
+  "org.apache.pekko" %% "pekko-serialization-jackson" % pekkoVersion,
   "org.json4s" %% "json4s-native" % "3.6.7",
   "org.json4s" %% "json4s-jackson" % "3.6.7",
   "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
-  "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
+  "org.apache.pekko" %% "pekko-testkit" % pekkoVersion % Test,
   "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
   "commons-io" % "commons-io" % "2.6",
   "commons-lang" % "commons-lang" % "2.6",
   "org.apache.commons" % "commons-email" % "1.5",
-
 
   "org.projectlombok" % "lombok" % "1.16.16",
   "com.danielasfregola" %% "random-data-generator" % "2.8",
