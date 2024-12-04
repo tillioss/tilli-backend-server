@@ -55,7 +55,7 @@ sbt "runMain com.teqbahn.bootstrap.StarterMain local 2553 8093 \<ServerIP\> \<Re
 
 **local** - server running environment
 
-2553 - Akka Port
+2553 - Pekko Port
 
 8093 - Attp Port
 

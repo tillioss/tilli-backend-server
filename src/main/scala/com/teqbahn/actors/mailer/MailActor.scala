@@ -1,6 +1,6 @@
 package com.teqbahn.actors.mailer
 
-import akka.actor.{Actor, PoisonPill}
+import org.apache.pekko.actor.{Actor, PoisonPill}
 import com.teqbahn.caseclasses._
 import com.teqbahn.common.mail.Mailer
 import com.teqbahn.utils.ZiFunctions;

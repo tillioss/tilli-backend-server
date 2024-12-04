@@ -2,14 +2,14 @@ package com.teqbahn.bootstrap
 
 import java.io.{File,FileInputStream, FileOutputStream,IOException}
 import java.util.concurrent.TimeUnit
-import akka.actor.{ActorRef, ActorSystem}
-import akka.http.javadsl.model.BodyPartEntity
-import akka.http.scaladsl.model._
-import akka.http.scaladsl.server.Directives.{entity, _}
-import akka.http.scaladsl.server.{ExceptionHandler, RejectionHandler, Route}
-import akka.stream.ActorMaterializer
-import akka.util.{ByteString, Timeout}
-import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.http.javadsl.model.BodyPartEntity
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.http.scaladsl.server.Directives.{entity, _}
+import org.apache.pekko.http.scaladsl.server.{ExceptionHandler, RejectionHandler, Route}
+import org.apache.pekko.stream.ActorMaterializer
+import org.apache.pekko.util.{ByteString, Timeout}
+import org.apache.pekko.http.cors.scaladsl.CorsDirectives._
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.teqbahn.bootstrap.StarterMain.envServer
 import com.teqbahn.caseclasses._
@@ -21,12 +21,12 @@ import org.json4s.DefaultFormats
 import scala.concurrent.duration._
 import org.json4s.native.JsonMethods.parse
 import org.json4s.jackson.Serialization.write
-import akka.pattern.Patterns
+import org.apache.pekko.pattern.Patterns
 import scala.concurrent.Await
 import java.util.zip.{ZipEntry, ZipInputStream}
 
 
-object AkkaHttpConnector {
+object PekkoHttpConnector {
 
   var timeout = new Timeout(100, TimeUnit.SECONDS)
 
@@ -1700,5 +1700,5 @@ object AkkaHttpConnector {
   }
 }
 
-class AkkaHttpConnector {
+class PekkoHttpConnector {
 }

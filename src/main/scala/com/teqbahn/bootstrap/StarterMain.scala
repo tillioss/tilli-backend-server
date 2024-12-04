@@ -1,10 +1,9 @@
 package com.teqbahn.bootstrap
 
 import java.io.{File}
-import akka.actor.{ActorRef, ActorSystem, Props}
-import akka.http.scaladsl.{Http}
-//import akka.management.scaladsl.AkkaManagement
-import akka.stream.{ActorMaterializer}
+import org.apache.pekko.actor.{ActorRef, ActorSystem, Props}
+import org.apache.pekko.http.scaladsl.{Http}
+import org.apache.pekko.stream.{ActorMaterializer}
 import com.typesafe.config.{Config, ConfigFactory}
 import com.teqbahn.actors.admin.AdminActor
 import com.teqbahn.actors.analytics.Accumulators
@@ -20,12 +19,12 @@ object StarterMain {
   var envServer = "local" // "live"
   var confFile = "application_local.conf"
 
-  var akkaPort = 2551
+  var pekkoPort = 2551
   var httpPort = 8091
   var http2Port = 8081
-  var akkaManagementPort = 8558
+  var pekkoManagementPort = 8558
   var httpHostName = "0.0.0.0" // "0.0.0.0"
-  var akkaManagementHostName = "127.0.0.1" // "127.0.0.1"
+  var pekkoManagementHostName = "127.0.0.1" // "127.0.0.1"
 
   // Project specific data
 
@@ -64,7 +63,7 @@ object StarterMain {
 
     if (envServer.equalsIgnoreCase("local")) {
 
-      akkaPort = args(1).toInt
+      pekkoPort = args(1).toInt
       httpPort = args(2).toInt
       httpHostName = args(3)
       redisHostPath = args(4)
@@ -75,12 +74,12 @@ object StarterMain {
       // fileSystemPath = "/efs/tilli/"
     } else {
       confFile = "application_live.conf"
-      akkaPort = System.getenv("akkaPort").toInt
+      pekkoPort = System.getenv("pekkoPort").toInt
       httpPort = System.getenv("httpPort").toInt
       http2Port = System.getenv("http2Port").toInt
-      akkaManagementPort = System.getenv("akkaManagementPort").toInt
+      pekkoManagementPort = System.getenv("pekkoManagementPort").toInt
       httpHostName = System.getenv("httpHostName")
-      akkaManagementHostName = System.getenv("akkaManagementHostName")
+      pekkoManagementHostName = System.getenv("pekkoManagementHostName")
 
 
       projectName = System.getenv("projectName")
@@ -97,13 +96,10 @@ object StarterMain {
 
     //    createDir(fileSystemPath + projectName)
 
-    //implicit val actorSystem = ActorSystem("tilli", setupNodeConfig(akkaPort))
     implicit val actorSystem = ActorSystem("tilli")
     implicit val materializer = ActorMaterializer()
     implicit val executionContext = actorSystem.dispatcher
 
-
-   // AkkaManagement(actorSystem).start()
 
 
     import io.lettuce.core.RedisClient
@@ -128,24 +124,10 @@ object StarterMain {
     accumulatorResultActorRef = actorSystem.actorOf(Props.create(classOf[ResultAccumulator]), "actor-accumulator-result")
 
 
-    Http().bindAndHandle(AkkaHttpConnector.getRoutes(materializer, actorSystem, projectPrefix, akkaManagementHostName), httpHostName, httpPort)
+    Http().bindAndHandle(PekkoHttpConnector.getRoutes(materializer, actorSystem, projectPrefix, pekkoManagementHostName), httpHostName, httpPort)
     println(s"Server online at http://" + httpHostName + ":" + httpPort + "/\nPress RETURN to stop...")
 
   }
-
-  def setupNodeConfig(port: Int): Config = ConfigFactory
-    .parseString(
-      "akka.remote.netty.tcp.port=" + port + "\n"
-        + "akka.remote.netty.tcp.hostname=" + akkaManagementHostName + "\n"
-        + "akka.remote.netty.tcp.port=" + akkaPort + "\n"
-      //  + "akka.management.http.port=" + akkaManagementPort + "\n"
-       // + "akka.management.http.bind-port=" + akkaManagementPort + "\n"
-        + "akka.remote.artery.canonical.hostname=" + akkaManagementHostName + "\n"
-       // + "akka.management.http.hostname=" + akkaManagementHostName + "\n"
-        + "akka.remote.artery.canonical.port=" + port + "\n"
-      //  + "akka.http.server.preview.enable-http2 = on"
-    )
-    .withFallback(ConfigFactory.load(confFile))
 
   def printEnv(): Unit = {
     println("... Inside tilli ...")
@@ -156,11 +138,11 @@ object StarterMain {
         "\n fileSystemType --> " + fileSystemType +
         "\n fileSystemPath --> " + fileSystemPath +
         "\n projectPrefix --> " + projectPrefix +
-        "\n akkaPort --> " + akkaPort +
+        "\n pekkoPort --> " + pekkoPort +
         "\n httpPort --> " + httpPort +
-        "\n akkaManagementPort --> " + akkaManagementPort +
+        "\n pekkoManagementPort --> " + pekkoManagementPort +
         "\n httpHostName --> " + httpHostName +
-        "\n akkaManagementHostName --> " + akkaManagementHostName +
+        "\n pekkoManagementHostName --> " + pekkoManagementHostName +
         "\n frontEndPath --> " + frontEndPath
     )
   }

@@ -1,6 +1,6 @@
 package com.teqbahn.actors.analytics.result
 
-import akka.actor.{Actor, PoisonPill}
+import org.apache.pekko.actor.{Actor, PoisonPill}
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.teqbahn.bootstrap.StarterMain
 import com.teqbahn.bootstrap.StarterMain.redisCommands
@@ -18,7 +18,7 @@ class ResultAccumulator extends Actor {
   implicit val formats = Serialization.formats(NoTypeHints)
 
   override def postStop(): Unit = {
-    println("At : " + LocalDateTime.now() + ", From node : " + StarterMain.akkaManagementHostName + ", Path : " + self.path.toString + ", Msg : " + "ResultAccumulator got PoisonPill")
+    println("At : " + LocalDateTime.now() + ", From node : " + StarterMain.pekkoManagementHostName + ", Path : " + self.path.toString + ", Msg : " + "ResultAccumulator got PoisonPill")
   }
 
   def receive: Receive = {

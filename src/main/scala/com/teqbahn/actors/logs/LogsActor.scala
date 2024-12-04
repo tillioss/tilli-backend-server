@@ -1,6 +1,6 @@
 package com.teqbahn.actors.logs
 
-import akka.actor.{Actor, ActorRef}
+import org.apache.pekko.actor.{Actor, ActorRef}
 import com.teqbahn.bootstrap.StarterMain.redisCommands
 import com.teqbahn.caseclasses.{AddToAccumulationRequest, CaptureLogsRequestWrapper, CaptureLogsResponse, GetWebLogsRequest, GetWebLogsResponse, LogsData}
 import com.teqbahn.global.{GlobalMessageConstants, ZiRedisCons}
