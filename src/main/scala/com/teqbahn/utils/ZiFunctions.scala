@@ -12,7 +12,6 @@ object ZiFunctions {
   }
 
   def printNodeInfo(self : ActorRef, msg : String): Unit = {
-//    println("At : " + LocalDateTime.now() + ", From node : " + StarterMain.akkaManagementHostName + ", Path : " + self.path.toString + ", Msg : " + msg)
   }
   def getCreatedAt(): Long = {
     new Timestamp((new Date).getTime).getTime
