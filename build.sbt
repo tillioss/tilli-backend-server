@@ -38,6 +38,7 @@ libraryDependencies ++=Seq(
   "org.apache.pekko" %% "pekko-http-testkit" % pekkoHttpVersion % Test,
   "org.apache.pekko" %% "pekko-stream-testkit" % pekkoVersion % Test,
   "redis.clients" % "jedis" % "4.3.1" % Test, 
+  "redis.clients" % "jedis" % "4.3.1",
   "commons-io" % "commons-io" % "2.6",
   "commons-lang" % "commons-lang" % "2.6",
   "org.apache.commons" % "commons-email" % "1.5",
