@@ -442,5 +442,170 @@ class AdminActorSpec
 
       expectMsg(5.seconds, CreateGameUserResponse(GlobalMessageConstants.SUCCESS))
     }
+
+    "handle EmotionCaptureRequest successfully" in {
+      val userId = "user123"
+      val levelId = "level1"
+      val themeId = "theme1"
+      val emotionKey = "happy"
+      val attemptCount = 1
+      
+      val request = EmotionCaptureRequest(
+        userId = userId,
+        levelId = levelId,
+        themeId = themeId,
+        emotionKey = emotionKey,
+        attemptCount = attemptCount
+      )
+
+      // Verify emotion type is valid
+      GlobalMessageConstants.EMOTION_TYPES should contain(emotionKey)
+
+      // Mock Redis operations
+      val redisKey = s"emotion_${userId}_${levelId}_${themeId}"
+      when(mockRedisCommands.lpush(redisKey, emotionKey))
+        .thenReturn(1L)
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      expectMsg(5.seconds, EmotionCaptureResponse(GlobalMessageConstants.SUCCESS))
+    }
+
+    "handle FeedbackCaptureRequest successfully" in {
+      val userId = "user123"
+      val levelId = "level1"
+      val themeId = "theme1"
+      val feedBackKey = "liked"
+      val activity = "bubblepopactivity"
+      val attemptCount = 1
+      
+      val request = FeedbackCaptureRequest(
+        userId = userId,
+        levelId = levelId,
+        themeId = themeId,
+        feedBackKey = feedBackKey,
+        activity = activity,
+        attemptCount = attemptCount
+      )
+
+      // Verify feedback type and activity are valid
+      GlobalMessageConstants.FEEDBACK_TYPES should contain(feedBackKey)
+      GlobalMessageConstants.ACTIVITY should contain(activity)
+
+      // Mock Redis operations
+      val hgetKey = s"feedback_${userId}_${levelId}_${themeId}_data"
+      val feedbackData = FeedBackCaptureData(activity, attemptCount)
+      
+      when(mockRedisCommands.hset(
+        org.mockito.ArgumentMatchers.eq(hgetKey),
+        org.mockito.ArgumentMatchers.eq(feedBackKey),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(true)
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      expectMsg(5.seconds, FeedbackCapturtResponse(GlobalMessageConstants.SUCCESS))
+    }
+
+    "handle GetfeedbackCaptureListRequest successfully" in {
+      val userId = "user123"
+      val levelId = "level1"
+      val themeId = "theme1"
+      
+      val request = GetfeedbackCaptureListRequest(
+        userId = userId,
+        levelId = levelId,
+        themeId = themeId
+      )
+
+      // Mock Redis operations
+      val initalString = s"feedback_${userId}_${levelId}_${themeId}"
+      val likedKey = "liked"
+      val dislikedKey = "disliked"
+      val neutralKey = "neutral"
+
+      // Create Java Sets for Redis mock responses
+      val likedSet = new java.util.HashSet[String]()
+      likedSet.add("activity1_1")
+      
+      val dislikedSet = new java.util.HashSet[String]()
+      dislikedSet.add("activity2_1")
+      
+      val emptySet = new java.util.HashSet[String]()
+
+      // Mock feedback data for each type
+      val feedbackData1 = FeedBackCaptureData("bubblepopactivity", 1)
+      val feedbackData2 = FeedBackCaptureData("yogaactivity", 1)
+      
+      when(mockRedisCommands.smembers(s"${initalString}_liked"))
+        .thenReturn(likedSet)
+      when(mockRedisCommands.smembers(s"${initalString}_disliked"))
+        .thenReturn(dislikedSet)
+      when(mockRedisCommands.smembers(s"${initalString}_neutral"))
+        .thenReturn(emptySet)
+
+      when(mockRedisCommands.hget(s"${initalString}_data", likedKey))
+        .thenReturn(write(feedbackData1))
+      when(mockRedisCommands.hget(s"${initalString}_data", dislikedKey))
+        .thenReturn(write(feedbackData2))
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      val response = expectMsgType[GetfeedbackCaptureListResponse]
+      response.response should not be empty
+      response.response should contain key likedKey
+      response.response should contain key dislikedKey
+      response.response should contain key neutralKey
+    }
+
+    "handle invalid emotion type in EmotionCaptureRequest" in {
+      val request = EmotionCaptureRequest(
+        userId = "user123",
+        levelId = "level1",
+        themeId = "theme1",
+        emotionKey = "invalid_emotion",
+        attemptCount = 1
+      )
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      expectMsg(5.seconds, EmotionCaptureResponse(GlobalMessageConstants.FAILURE))
+    }
+
+    "handle invalid feedback type in FeedbackCaptureRequest" in {
+      val request = FeedbackCaptureRequest(
+        userId = "user123",
+        levelId = "level1",
+        themeId = "theme1",
+        feedBackKey = "invalid_feedback",
+        activity = "bubblepopactivity",
+        attemptCount = 1
+      )
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      expectMsg(5.seconds, FeedbackCapturtResponse(GlobalMessageConstants.FAILURE))
+    }
+
+    "handle invalid activity in FeedbackCaptureRequest" in {
+      val request = FeedbackCaptureRequest(
+        userId = "user123",
+        levelId = "level1",
+        themeId = "theme1",
+        feedBackKey = "liked",
+        activity = "invalid_activity",
+        attemptCount = 1
+      )
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      expectMsg(5.seconds, FeedbackCapturtResponse(GlobalMessageConstants.FAILURE))
+    }
   }
 } 

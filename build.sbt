@@ -72,10 +72,3 @@ assemblyMergeStrategy in assembly := {
 // ALPN agent, only required on JVM 8
 enablePlugins(JavaAgent)
 javaAgents += "org.mortbay.jetty.alpn" % "jetty-alpn-agent" % "2.0.9" % "runtime;test"
-
-// Coverage settings
-ThisBuild / coverageEnabled := true
-ThisBuild / coverageFailOnMinimum := false
-
-
-
