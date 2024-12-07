@@ -17,6 +17,8 @@ import org.json4s.native.Serialization
 import org.json4s.native.Serialization.{write, read}
 import org.json4s.NoTypeHints
 import scala.concurrent.duration._
+import org.mockito.ArgumentCaptor
+import org.scalatest.BeforeAndAfterEach
 
 class AdminActorSpec 
     extends TestKit(ActorSystem("AdminActorSpec"))
@@ -24,6 +26,7 @@ class AdminActorSpec
     with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll
+    with BeforeAndAfterEach
     with MockitoSugar {
 
   implicit val formats = Serialization.formats(NoTypeHints)
@@ -33,7 +36,13 @@ class AdminActorSpec
   override def beforeAll(): Unit = {
     StarterMain.redisCommands = mockRedisCommands
     StarterMain.accumulatorsActorRef = mockAccumulatorActor.ref
+    StarterMain.mailActorRef = TestProbe().ref
     StarterMain.adminSupervisorActorRef = system.actorOf(Props[AdminActor], "admin-supervisor")
+  }
+
+  override def beforeEach(): Unit = {
+    super.beforeEach()
+    org.mockito.Mockito.reset(mockRedisCommands)
   }
 
   override def afterAll(): Unit = {
@@ -247,6 +256,191 @@ class AdminActorSpec
       adminActor ! request
 
       expectMsg(UpdateForgotPasswordResponse("session1", GlobalMessageConstants.SUCCESS))
+    }
+
+    "handle GetLogoutRequest successfully" in {
+      val userId = "user123"
+      val request = GetLogoutRequest(userId = userId, sessionId = "session1")
+      val timestamp = new Timestamp(new Date().getTime).getTime
+
+      val userData = User(
+        userId = userId,
+        emailId = "test@example.com",
+        name = "Test User",
+        password = "password123",
+        nameOfChild = "Child",
+        ageOfChild = "5",
+        passcode = "1234",
+        status = "active",
+        lastLogin = Some(timestamp),
+        lastLogout = None,
+        zipcode = None,
+        genderOfChild = Some("male"),
+        createdAt = Some(timestamp),
+        ip = None,
+        deviceInfo = None,
+        schoolName = None,
+        className = None
+      )
+
+      // Mock Redis operations for logout
+      when(mockRedisCommands.hexists(ZiRedisCons.USER_JSON, userId))
+        .thenReturn(true)
+      when(mockRedisCommands.hget(ZiRedisCons.USER_JSON, userId))
+        .thenReturn(write(userData))
+      when(mockRedisCommands.hset(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.USER_JSON),
+        org.mockito.ArgumentMatchers.eq(userId),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(true)
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      // No response expected as per AdminActor implementation
+      expectNoMessage(3.seconds)
+
+      // Verify that hset was called (user data was updated)
+      verify(mockRedisCommands, times(1)).hset(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.USER_JSON),
+        org.mockito.ArgumentMatchers.eq(userId),
+        org.mockito.ArgumentMatchers.any[String]()
+      )
+    }
+
+    "handle CreateUserRequest successfully" in {
+      val request = CreateUserRequest(
+        emailId = "newuser@example.com",
+        password = "password123",
+        name = "New User",
+        ageOfChild = "6",
+        nameOfChild = "Child Name",
+        passcode = "1234",
+        sessionId = "session1"
+      )
+
+      when(mockRedisCommands.hexists(ZiRedisCons.USER_LOGIN_CREDENTIALS, request.emailId))
+        .thenReturn(false)
+      when(mockRedisCommands.hset(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.USER_LOGIN_CREDENTIALS),
+        org.mockito.ArgumentMatchers.eq(request.emailId),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(true)
+      when(mockRedisCommands.hset(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.USER_JSON),
+        org.mockito.ArgumentMatchers.any[String](),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(true)
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      expectMsg(5.seconds, CreateUserResponse(GlobalMessageConstants.SUCCESS))
+    }
+
+    "handle SendForgotPasswordRequest successfully" in {
+      val email = "test@example.com"
+      val userId = "user123"
+      val request = SendForgotPasswordRequest(sessionId = "session1", email = email)
+
+      val userCredentials = UserLoginCredential(
+        userId = userId,
+        password = "password123",
+        status = "active"
+      )
+
+      val userData = User(
+        userId = userId,
+        emailId = email,
+        name = "Test User",
+        password = "password123",
+        nameOfChild = "Child",
+        ageOfChild = "5",
+        passcode = "1234",
+        status = "active",
+        lastLogin = None,
+        lastLogout = None,
+        zipcode = None,
+        genderOfChild = Some("male"),
+        createdAt = Some(new Timestamp(new Date().getTime).getTime),
+        ip = None,
+        deviceInfo = None,
+        schoolName = None,
+        className = None
+      )
+
+      // Mock Redis operations for forgot password
+      when(mockRedisCommands.hexists(ZiRedisCons.USER_LOGIN_CREDENTIALS, email))
+        .thenReturn(true)
+      when(mockRedisCommands.hget(ZiRedisCons.USER_LOGIN_CREDENTIALS, email))
+        .thenReturn(write(userCredentials))
+      when(mockRedisCommands.hget(ZiRedisCons.USER_JSON, userId))
+        .thenReturn(write(userData))
+      when(mockRedisCommands.hset(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.USER_FORGOT_PASSWORD_JSON),
+        org.mockito.ArgumentMatchers.eq(userId),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(true)
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      expectMsg(10.seconds, SendForgotPasswordResponse("session1", GlobalMessageConstants.SUCCESS))
+    }
+
+    "handle GetLoginRequest with invalid credentials" in {
+      val loginId = "test@example.com"
+      val password = "wrongpassword"
+      val request = GetLoginRequest(loginId = loginId, password = password, sessionId = "session1")
+
+      when(mockRedisCommands.hexists(ZiRedisCons.USER_LOGIN_CREDENTIALS, loginId))
+        .thenReturn(false)
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      expectMsg(5.seconds, GetLoginResponse(
+        sessionId = "",
+        response = GlobalMessageConstants.INVALID_ACCOUNT,
+        id = "",
+        email = "",
+        name = "",
+        isFirstLogin = false,
+        responseCode = "0",
+        nameOfChild = ""
+      ))
+    }
+
+    "handle CreateGameUserRequest successfully" in {
+      val request = CreateGameUserRequest(
+        emailId = "gameuser@example.com",
+        password = "password123",
+        nameOfChild = "Game Child",
+        ageOfChild = "7",
+        schoolName = "Test School",
+        className = "Class A",
+        genderOfChild = "female",
+        passcode = "1234",
+        sessionId = "session1"
+      )
+
+      when(mockRedisCommands.hexists(ZiRedisCons.USER_LOGIN_CREDENTIALS, request.emailId))
+        .thenReturn(false)
+      when(mockRedisCommands.hset(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.USER_LOGIN_CREDENTIALS),
+        org.mockito.ArgumentMatchers.eq(request.emailId),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(true)
+      when(mockRedisCommands.hset(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.USER_JSON),
+        org.mockito.ArgumentMatchers.any[String](),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(true)
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      expectMsg(5.seconds, CreateGameUserResponse(GlobalMessageConstants.SUCCESS))
     }
   }
 } 
