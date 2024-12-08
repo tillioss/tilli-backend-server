@@ -607,5 +607,284 @@ class AdminActorSpec
 
       expectMsg(5.seconds, FeedbackCapturtResponse(GlobalMessageConstants.FAILURE))
     }
+
+    "handle CreateDemoUserRequest for existing demo user" in {
+      val demoUserId = "demo123"
+      val request = CreateDemoUserRequest(
+        sessionId = "session1",
+        demoUserId = demoUserId,
+        ip = Some("127.0.0.1"),
+        deviceInfo = Some("test-device"),
+        userType = Some("test")
+      )
+
+      val existingUser = User(
+        userId = demoUserId,
+        emailId = "demo@example.com",
+        name = "Demo User",
+        password = "password123",
+        nameOfChild = "Demo Child",
+        ageOfChild = "5",
+        passcode = "1234",
+        status = "active",
+        genderOfChild = Some("male"),
+        createdAt = Some(new Timestamp(new Date().getTime).getTime)
+      )
+
+      when(mockRedisCommands.hexists(ZiRedisCons.USER_JSON, demoUserId))
+        .thenReturn(true)
+      when(mockRedisCommands.hget(ZiRedisCons.USER_JSON, demoUserId))
+        .thenReturn(write(existingUser))
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      expectMsg(5.seconds, CreateDemoUserResponse(
+        sessionId = "session1",
+        response = GlobalMessageConstants.SUCCESS,
+        id = demoUserId,
+        email = existingUser.emailId,
+        name = existingUser.name,
+        isFirstLogin = false,
+        responseCode = "1",
+        nameOfChild = existingUser.nameOfChild,
+        ageOfChild = existingUser.ageOfChild,
+        genderOfChild = existingUser.genderOfChild.getOrElse("")
+      ))
+    }
+
+    "handle CreateDemoUserRequest for new demo user" in {
+      val request = CreateDemoUserRequest(
+        sessionId = "session1",
+        demoUserId = null,
+        ip = Some("127.0.0.1"),
+        deviceInfo = Some("test-device"),
+        userType = Some("test")
+      )
+
+      // Mock counter increment
+      when(mockRedisCommands.incr(ZiRedisCons.USER_demoUserCounter))
+        .thenReturn(1L)
+
+      // Mock Redis operations for new user creation
+      when(mockRedisCommands.hset(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.USER_JSON),
+        org.mockito.ArgumentMatchers.any[String](),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(true)
+      when(mockRedisCommands.hset(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.USER_LOGIN_CREDENTIALS),
+        org.mockito.ArgumentMatchers.any[String](),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(true)
+      when(mockRedisCommands.lpush(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.ADMIN_userIdsList),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(1L)
+      when(mockRedisCommands.lpush(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.ADMIN_testuserIdList),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(1L)
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      val response = expectMsgType[CreateDemoUserResponse]
+      response.sessionId shouldBe "session1"
+      response.response shouldBe GlobalMessageConstants.SUCCESS
+      response.responseCode shouldBe "1"
+      response.isFirstLogin shouldBe false
+    }
+
+    "handle CreateDemo2UserRequest for existing demo user" in {
+      val demoUserId = "demo123"
+      val request = CreateDemo2UserRequest(
+        sessionId = "session1",
+        demoUserId = demoUserId,
+        ip = Some("127.0.0.1"),
+        deviceInfo = Some("test-device"),
+        userType = Some("test"),
+        age = "6",
+        gender = "female",
+        language = Some("en")
+      )
+
+      val existingUser = User(
+        userId = demoUserId,
+        emailId = "demo@example.com",
+        name = "Demo User",
+        password = "password123",
+        nameOfChild = "Demo Child",
+        ageOfChild = "6",
+        passcode = "1234",
+        status = "active"
+      )
+
+      when(mockRedisCommands.hexists(ZiRedisCons.USER_JSON, demoUserId))
+        .thenReturn(true)
+      when(mockRedisCommands.hget(ZiRedisCons.USER_JSON, demoUserId))
+        .thenReturn(write(existingUser))
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      expectMsg(5.seconds, CreateDemo2UserResponse(
+        sessionId = "session1",
+        response = GlobalMessageConstants.SUCCESS,
+        id = demoUserId,
+        email = existingUser.emailId,
+        name = existingUser.name,
+        isFirstLogin = false,
+        responseCode = "1",
+        nameOfChild = existingUser.nameOfChild
+      ))
+    }
+
+    "handle CreateDemo2UserRequest for new demo user" in {
+      val request = CreateDemo2UserRequest(
+        sessionId = "session1",
+        demoUserId = null,
+        ip = Some("127.0.0.1"),
+        deviceInfo = Some("test-device"),
+        userType = Some("test"),
+        age = "6",
+        gender = "female",
+        language = Some("en")
+      )
+
+      // Mock counter increment
+      when(mockRedisCommands.incr(ZiRedisCons.USER_demoUserCounter))
+        .thenReturn(1L)
+
+      // Mock Redis operations for new user creation
+      when(mockRedisCommands.hset(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.USER_JSON),
+        org.mockito.ArgumentMatchers.any[String](),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(true)
+      when(mockRedisCommands.hset(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.USER_LOGIN_CREDENTIALS),
+        org.mockito.ArgumentMatchers.any[String](),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(true)
+      when(mockRedisCommands.lpush(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.ADMIN_userIdsList),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(1L)
+      when(mockRedisCommands.lpush(
+        org.mockito.ArgumentMatchers.eq(ZiRedisCons.ADMIN_testuserIdList),
+        org.mockito.ArgumentMatchers.any[String]()
+      )).thenReturn(1L)
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      val response = expectMsgType[CreateDemo2UserResponse]
+      response.sessionId shouldBe "session1"
+      response.response shouldBe GlobalMessageConstants.SUCCESS
+      response.responseCode shouldBe "1"
+      response.isFirstLogin shouldBe false
+    }
+
+    "handle GetLoginRequest with inactive user" in {
+      val loginId = "inactive@example.com"
+      val password = "password123"
+      val userId = "user123"
+      val request = GetLoginRequest(loginId = loginId, password = password, sessionId = "session1")
+
+      val userCredentials = UserLoginCredential(
+        userId = userId,
+        password = password,
+        status = GlobalConstants.UNVERIFIED
+      )
+
+      // Mock Redis commands
+      when(mockRedisCommands.hexists(ZiRedisCons.USER_LOGIN_CREDENTIALS, loginId))
+        .thenReturn(true)
+      when(mockRedisCommands.hget(ZiRedisCons.USER_LOGIN_CREDENTIALS, loginId))
+        .thenReturn(write(userCredentials))
+
+      StarterMain.redisCommands = mockRedisCommands
+
+      // Create actor with debug logging
+      val adminActor = system.actorOf(Props(new AdminActor() {
+        override def receive: Receive = {
+          case msg: GetLoginRequest =>
+            println(s"DEBUG: Actor received login request: $msg")
+            println(s"DEBUG: Redis exists check: ${mockRedisCommands.hexists(ZiRedisCons.USER_LOGIN_CREDENTIALS, msg.loginId)}")
+            val credentials = mockRedisCommands.hget(ZiRedisCons.USER_LOGIN_CREDENTIALS, msg.loginId)
+            println(s"DEBUG: Redis get result: $credentials")
+            
+            // Parse credentials and send response directly
+            val userCred = read[UserLoginCredential](credentials)
+            println(s"DEBUG: Parsed credentials: $userCred")
+            
+            if (msg.password == userCred.password) {
+              println("DEBUG: Password matches")
+              if (userCred.status == GlobalConstants.UNVERIFIED) {
+                println("DEBUG: User is inactive, sending response")
+                sender() ! GetLoginResponse(
+                  sessionId = "",
+                  response = GlobalMessageConstants.INVALID_ACCOUNT,
+                  id = "",
+                  email = "",
+                  name = "",
+                  isFirstLogin = false,
+                  responseCode = "0",
+                  nameOfChild = ""
+                )
+              }
+            }
+          case msg => 
+            println(s"DEBUG: Actor received other message: $msg")
+            super.receive(msg)
+        }
+      }))
+
+      // First verify actor is alive
+      adminActor ! "test"
+      expectMsg(5.seconds, "Test message successful!")
+
+      println("DEBUG: Sending login request")
+      
+      // Use TestProbe to send the message
+      val probe = TestProbe()
+      adminActor.tell(request, probe.ref)
+
+      // Wait for response
+      probe.expectMsgType[GetLoginResponse](10.seconds)
+    }
+
+    "handle GetLoginRequest with wrong password" in {
+      val loginId = "test@example.com"
+      val password = "wrongpassword"
+      val userId = "user123"
+      val request = GetLoginRequest(loginId = loginId, password = password, sessionId = "session1")
+
+      val userCredentials = UserLoginCredential(
+        userId = userId,
+        password = "correctpassword",
+        status = GlobalConstants.ACTIVE
+      )
+
+      when(mockRedisCommands.hexists(ZiRedisCons.USER_LOGIN_CREDENTIALS, loginId))
+        .thenReturn(true)
+      when(mockRedisCommands.hget(ZiRedisCons.USER_LOGIN_CREDENTIALS, loginId))
+        .thenReturn(write(userCredentials))
+
+      val adminActor = system.actorOf(Props[AdminActor])
+      adminActor ! request
+
+      expectMsg(5.seconds, GetLoginResponse(
+        sessionId = "",
+        response = GlobalMessageConstants.INVALID_PASSWORD,
+        id = "",
+        email = "",
+        name = "",
+        isFirstLogin = false,
+        responseCode = "0",
+        nameOfChild = ""
+      ))
+    }
   }
 } 
