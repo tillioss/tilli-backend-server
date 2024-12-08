@@ -29,4 +29,4 @@ jobs:
             ${{ runner.os }}-sbt-
 
       - name: Run Tests
-        run: sbt test
+        run: sbt clean coverage test coverageReport

@@ -1,12 +1,13 @@
 package com.teqbahn.actors.logs
 
 import org.apache.pekko.actor.{Actor, ActorRef}
-import com.teqbahn.bootstrap.StarterMain.redisCommands
+import com.teqbahn.bootstrap.StarterMain
 import com.teqbahn.caseclasses.{AddToAccumulationRequest, CaptureLogsRequestWrapper, CaptureLogsResponse, GetWebLogsRequest, GetWebLogsResponse, LogsData}
 import com.teqbahn.global.{GlobalMessageConstants, ZiRedisCons}
 import org.json4s.NoTypeHints
 import org.json4s.jackson.Serialization.{read, write}
 import org.json4s.native.Serialization
+import io.lettuce.core.api.sync.RedisCommands
 
 import java.sql.Timestamp
 import java.util.Date
@@ -15,6 +16,8 @@ import scala.collection.mutable.ListBuffer
 
 class LogsActor extends Actor {
   implicit val formats = Serialization.formats(NoTypeHints)
+
+  protected def redisCommands: RedisCommands[String, String] = StarterMain.redisCommands
 
   import scala.collection.JavaConverters._
 
