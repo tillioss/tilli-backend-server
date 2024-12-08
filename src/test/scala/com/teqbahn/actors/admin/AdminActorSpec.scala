@@ -19,6 +19,7 @@ import org.json4s.NoTypeHints
 import scala.concurrent.duration._
 import org.mockito.ArgumentCaptor
 import org.scalatest.BeforeAndAfterEach
+import scala.collection.JavaConverters._
 
 class AdminActorSpec 
     extends TestKit(ActorSystem("AdminActorSpec"))
@@ -885,6 +886,131 @@ class AdminActorSpec
         responseCode = "0",
         nameOfChild = ""
       ))
+    }
+
+    "handle feedback capture request" should {
+      // Setup common initialization mocks for all tests
+      def setupInitializationMocks() = {
+        doReturn(false).when(mockRedisCommands).hexists("Tilli::Admin::adminLoginCredentials", "tilliadmin")
+        doReturn(true).when(mockRedisCommands).hset(
+          org.mockito.ArgumentMatchers.eq("Tilli::Admin::adminLoginCredentials"),
+          org.mockito.ArgumentMatchers.eq("tilliadmin"),
+          org.mockito.ArgumentMatchers.any[String]()
+        )
+        doReturn(false).when(mockRedisCommands).hexists("Tilli::Admin::adminLoginCredentials", "admin_tilli@teqbahn.com")
+        doReturn(true).when(mockRedisCommands).hset(
+          org.mockito.ArgumentMatchers.eq("Tilli::Admin::adminLoginCredentials"),
+          org.mockito.ArgumentMatchers.eq("admin_tilli@teqbahn.com"),
+          org.mockito.ArgumentMatchers.any[String]()
+        )
+        doReturn("0").when(mockRedisCommands).get("Tilli::Users::demoUserCounter")
+      }
+
+      "handle repeated feedback attempts" in {
+        setupInitializationMocks()
+        
+        val userId = "user123"
+        val levelId = "level1"
+        val themeId = "theme1"
+        val activity = "bubblepopactivity"
+        val feedbackKey = "liked"
+        val attemptCount = 2
+
+        val attemptKey = s"Tilli::Game::trackingGameData_Feedback_${userId}_${levelId}_${themeId}_${activity}_${feedbackKey}_attempt_${attemptCount}_Count"
+        
+        // Mock existing attempt - return 1 to indicate it exists
+        doReturn(1L).when(mockRedisCommands).exists(attemptKey)
+
+        val request = FeedbackCaptureRequest(userId, levelId, themeId, feedbackKey, activity, attemptCount)
+        val adminActor = system.actorOf(Props[AdminActor])
+        adminActor ! request
+
+        expectMsg(5.seconds, FeedbackCapturtResponse(GlobalMessageConstants.SUCCESS))
+      }
+
+      "handle feedback with empty user ID" in {
+        setupInitializationMocks()
+        
+        val request = FeedbackCaptureRequest(
+          userId = "",
+          levelId = "level1",
+          themeId = "theme1",
+          feedBackKey = "liked",
+          activity = "bubblepopactivity",
+          attemptCount = 1
+        )
+
+        // Mock validation check
+        doReturn(0L).when(mockRedisCommands).exists(org.mockito.ArgumentMatchers.anyString())
+
+        val adminActor = system.actorOf(Props[AdminActor])
+        adminActor ! request
+
+        expectMsg(5.seconds, FeedbackCapturtResponse(GlobalMessageConstants.SUCCESS))
+      }
+
+      "handle feedback with empty level ID" in {
+        setupInitializationMocks()
+        
+        val request = FeedbackCaptureRequest(
+          userId = "user123",
+          levelId = "",
+          themeId = "theme1",
+          feedBackKey = "liked",
+          activity = "bubblepopactivity",
+          attemptCount = 1
+        )
+
+        // Mock validation check
+        doReturn(0L).when(mockRedisCommands).exists(org.mockito.ArgumentMatchers.anyString())
+
+        val adminActor = system.actorOf(Props[AdminActor])
+        adminActor ! request
+
+        expectMsg(5.seconds, FeedbackCapturtResponse(GlobalMessageConstants.FAILURE))
+      }
+
+      "handle feedback with zero attempt count" in {
+        setupInitializationMocks()
+        
+        val request = FeedbackCaptureRequest(
+          userId = "user123",
+          levelId = "level1",
+          themeId = "theme1",
+          feedBackKey = "liked",
+          activity = "bubblepopactivity",
+          attemptCount = 0
+        )
+
+        // Mock validation check
+        doReturn(0L).when(mockRedisCommands).exists(org.mockito.ArgumentMatchers.anyString())
+
+        val adminActor = system.actorOf(Props[AdminActor])
+        adminActor ! request
+
+        expectMsg(5.seconds, FeedbackCapturtResponse(GlobalMessageConstants.SUCCESS))
+      }
+
+      "handle feedback with negative attempt count" in {
+        setupInitializationMocks()
+        
+        val request = FeedbackCaptureRequest(
+          userId = "user123",
+          levelId = "level1",
+          themeId = "theme1",
+          feedBackKey = "liked",
+          activity = "bubblepopactivity",
+          attemptCount = -1
+        )
+
+        // Mock validation check
+        doReturn(0L).when(mockRedisCommands).exists(org.mockito.ArgumentMatchers.anyString())
+
+        val adminActor = system.actorOf(Props[AdminActor])
+        adminActor ! request
+
+        expectMsg(5.seconds, FeedbackCapturtResponse(GlobalMessageConstants.SUCCESS))
+      }
     }
   }
 } 
