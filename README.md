@@ -1,5 +1,7 @@
 # **tilli-backend-server**
 
+[![Coverage Status](https://coveralls.io/repos/github/tillioss/tilli-backend-server/badge.svg?branch=master)](https://coveralls.io/github/tillioss/tilli-backend-server?branch=master)
+
 Tilli is a web-based application with scala as backend and uses truffle as a tool to compile. It uses Redis as a database.
 
 ---
