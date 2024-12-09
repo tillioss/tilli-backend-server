@@ -29,7 +29,7 @@ jobs:
             ${{ runner.os }}-sbt-
 
       - name: Run Tests with Coverage
-        run: sbt clean coverage test coverageReport coveralls
+        run: sbt clean coverage test coverageReport
 
       - name: Upload coverage to Coveralls
         uses: coverallsapp/github-action@v2
