@@ -5,7 +5,7 @@ import com.teqbahn.caseclasses._
 import com.teqbahn.common.mail.Mailer
 import com.teqbahn.utils.ZiFunctions;
 
-class MailActor extends Actor {
+class MailActor(mailer: Mailer) extends Actor {
   override def postStop(): Unit = {
     ZiFunctions.printNodeInfo(self, "MailActor got PoisonPill")
   }
@@ -16,10 +16,7 @@ class MailActor extends Actor {
 
   def receive: Receive = {
     case sendMailRequest: SendMailRequest =>
-      val ccmailList = sendMailRequest.ccMailIds
-      val mailContent = sendMailRequest.mailContent
-      val mailSubject = sendMailRequest.subContent
-      Mailer.sendMail(mailContent, mailSubject, sendMailRequest.email);
+      mailer.sendMail(sendMailRequest.mailContent, sendMailRequest.subContent, sendMailRequest.email);
       ZiFunctions.printNodeInfo(self, "After Send Mail")
       self ! PoisonPill
   }
