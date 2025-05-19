@@ -870,7 +870,7 @@ class AdminActor() extends Actor {
     getExcelActorRef("excelGeneratefiles-"+gameCsvFileGenrateRequest.userId).forward(gameCsvFileGenrateRequest)
     
     response = GlobalMessageConstants.SUCCESS    
-    sender() ! GameCsvFileGenrateResponse(response)
+    sender() ! GameCsvFileGenerateResponse(response)
 
 
     case gameFileStatusRequest: GameFileStatusRequest =>        
@@ -1379,7 +1379,7 @@ class AdminActor() extends Actor {
         }else{
           resultMap += ("status" -> GlobalMessageConstants.FAILURE)
         }          
-      sender ! UserAttemptDeatailsBetweenDateRangeResponse(resultMap)
+      sender ! UserAttemptDetailsBetweenDateRangeResponse(resultMap)
     }
 
     case emotionCaptureRequest: EmotionCaptureRequest => {
@@ -1535,7 +1535,7 @@ class AdminActor() extends Actor {
             
       // var filterKey = initalString + underScore + userId_LevelId
       //
-      sender ! GetfeedbackCaptureListResponse(resultMap)
+      sender ! GetFeedbackCaptureListResponse(resultMap)
     }
 
     case t: String =>
