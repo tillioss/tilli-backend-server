@@ -1,36 +1,36 @@
 package com.teqbahn.bootstrap
 
-import java.io.{File,FileInputStream, FileOutputStream,IOException}
-import java.util.concurrent.TimeUnit
-import org.apache.pekko.actor.{ActorRef, ActorSystem}
-import org.apache.pekko.http.javadsl.model.BodyPartEntity
-import org.apache.pekko.http.scaladsl.model._
-import org.apache.pekko.http.scaladsl.server.Directives.{entity, _}
-import org.apache.pekko.http.scaladsl.server.{ExceptionHandler, RejectionHandler, Route}
-import org.apache.pekko.stream.ActorMaterializer
-import org.apache.pekko.util.{ByteString, Timeout}
-import org.apache.pekko.http.cors.scaladsl.CorsDirectives._
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.teqbahn.bootstrap.StarterMain.envServer
 import com.teqbahn.caseclasses._
 import com.teqbahn.converter.CompressImageFiles
 import com.teqbahn.global.GlobalMessageConstants
 import com.teqbahn.utils.ZiFunctions
-import scalaj.http.{Http, HttpOptions}
-import org.json4s.DefaultFormats
-import scala.concurrent.duration._
-import org.json4s.native.JsonMethods.parse
-import org.json4s.jackson.Serialization.write
+import org.apache.pekko.actor.{ActorRef, ActorSystem}
+import org.apache.pekko.http.cors.scaladsl.CorsDirectives._
+import org.apache.pekko.http.javadsl.model.BodyPartEntity
+import org.apache.pekko.http.scaladsl.model._
+import org.apache.pekko.http.scaladsl.server.Directives.{entity, _}
+import org.apache.pekko.http.scaladsl.server.{ExceptionHandler, RejectionHandler, Route}
 import org.apache.pekko.pattern.Patterns
-import scala.concurrent.Await
+import org.apache.pekko.stream.Materializer
+import org.apache.pekko.util.{ByteString, Timeout}
+import org.json4s.DefaultFormats
+import org.json4s.jackson.Serialization.write
+import org.json4s.native.JsonMethods.parse
+import scalaj.http.{Http, HttpOptions}
+
+import java.io.{File, FileInputStream, FileOutputStream, IOException}
+import java.util.concurrent.TimeUnit
 import java.util.zip.{ZipEntry, ZipInputStream}
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 
 object PekkoHttpConnector {
 
   var timeout = new Timeout(100, TimeUnit.SECONDS)
 
-  def getRoutes(materializer1: ActorMaterializer, actorSystem: ActorSystem, projectPrefix: String, nodeIp: String): Route = {
+  def getRoutes(materializer1: Materializer, actorSystem: ActorSystem, projectPrefix: String, nodeIp: String): Route = {
 
     implicit val materializer = materializer1
     implicit val executionContext = actorSystem.dispatcher
