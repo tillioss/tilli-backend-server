@@ -86,7 +86,7 @@ object PekkoHttpConnector {
             path(projectPrefix / "vp-game-file" / Segment / Segment / Segment/ Segment) { (action, id,key,fileName) =>
              val firstSubPath=action + "/" + id+"/"+key;
              val f: File = StarterMain.getImages(firstSubPath,fileName);
-             getFromFile(f)  
+             getFromFile(f)
             }
           },
           get {
@@ -112,7 +112,7 @@ object PekkoHttpConnector {
                           var temp = System.getProperty("java.io.tmpdir")
                           var pb: BodyPartEntity = bodyPart.getEntity()
 
-                          temp = StarterMain.fileSystemPath 
+                          temp = StarterMain.fileSystemPath
                           temp = temp + "/" + dir1
                           StarterMain.createDir(temp)
                           temp += "/" + dir2
@@ -169,7 +169,7 @@ object PekkoHttpConnector {
                           var dispositionMap: Map[String, String] = bodyPart.additionalDispositionParams
                           if (dispositionMap.size > 0 && bodyPart.getName().contains("file") && !dispositionMap.get("filename").isEmpty) {
                             var temp = System.getProperty("java.io.tmpdir")
-                            temp = StarterMain.fileSystemPath 
+                            temp = StarterMain.fileSystemPath
                             temp = temp + "/" + dir1
                             StarterMain.createDir(temp)
                             temp += "/zip/" + dir2
@@ -981,12 +981,12 @@ object PekkoHttpConnector {
               entity(as[String]) { data =>
                 implicit val formats = DefaultFormats
                 val jValue = parse(data)
-                val gameCsvFileGenrateRequest = jValue.extract[GameCsvFileGenrateRequest]
-                var response: GameCsvFileGenrateResponse = null
-                val future = Patterns.ask(StarterMain.adminSupervisorActorRef, gameCsvFileGenrateRequest, timeout)
+                val gameCsvFileGenerateRequest = jValue.extract[GameCsvFileGenrateRequest]
+                var response: GameCsvFileGenerateResponse = null
+                val future = Patterns.ask(StarterMain.adminSupervisorActorRef, gameCsvFileGenerateRequest, timeout)
                 try {
-                  val gameCsvFileGenrateResponse = Await.result(future, timeout.duration).asInstanceOf[GameCsvFileGenrateResponse]
-                  response = gameCsvFileGenrateResponse
+                  val gameCsvFileGenerateResponse = Await.result(future, timeout.duration).asInstanceOf[GameCsvFileGenerateResponse]
+                  response = gameCsvFileGenerateResponse
                 } catch {
                   case e: Exception =>
                     e.printStackTrace()
@@ -1582,26 +1582,26 @@ object PekkoHttpConnector {
               }
             }
           },
-          path(projectPrefix / "userAttemptDeatailsBetweenDateRange") { 
-            post { entity(as[String]) { data =>    
+          path(projectPrefix / "userAttemptDeatailsBetweenDateRange") {
+            post { entity(as[String]) { data =>
              implicit val formats = DefaultFormats
-             val getUserAttemptDeatailsBetweenDate = parse(data).extract[UserAttemptDeatailsBetweenDateRangeRequest]
-             var response: UserAttemptDeatailsBetweenDateRangeResponse = null
-             val future = Patterns.ask(StarterMain.adminSupervisorActorRef, getUserAttemptDeatailsBetweenDate, timeout)
+             val getUserAttemptDetailsBetweenDate = parse(data).extract[UserAttemptDeatailsBetweenDateRangeRequest]
+             var response: UserAttemptDetailsBetweenDateRangeResponse = null
+             val future = Patterns.ask(StarterMain.adminSupervisorActorRef, getUserAttemptDetailsBetweenDate, timeout)
               try {
-                  response = Await.result(future, timeout.duration).asInstanceOf[UserAttemptDeatailsBetweenDateRangeResponse]
+                  response = Await.result(future, timeout.duration).asInstanceOf[UserAttemptDetailsBetweenDateRangeResponse]
                 } catch {
                   case e: Exception =>
                     e.printStackTrace()
                 }
                 complete(write(response))
 
-             }            
+             }
             }
           },
 
-          path(projectPrefix / "emotionCapture") { 
-            post { entity(as[String]) { data =>    
+          path(projectPrefix / "emotionCapture") {
+            post { entity(as[String]) { data =>
              implicit val formats = DefaultFormats
              val emotionCaptureRequest = parse(data).extract[EmotionCaptureRequest]
              var emotionCaptureResponse: EmotionCaptureResponse = null
@@ -1613,12 +1613,12 @@ object PekkoHttpConnector {
                     e.printStackTrace()
                 }
                 complete(write(emotionCaptureResponse))
-             }            
+             }
             }
           },
 
-           path(projectPrefix / "getEmotionCaptureList") { 
-            post { entity(as[String]) { data =>    
+           path(projectPrefix / "getEmotionCaptureList") {
+            post { entity(as[String]) { data =>
              implicit val formats = DefaultFormats
              val getEmotionCaptureListRequest = parse(data).extract[GetEmotionCaptureListRequest]
              var getEmotionCaptureListResponse: GetEmotionCaptureListResponse = null
@@ -1630,12 +1630,12 @@ object PekkoHttpConnector {
                     e.printStackTrace()
                 }
                 complete(write(getEmotionCaptureListResponse))
-             }            
+             }
             }
           },
 
-          path(projectPrefix / "feedbackCapture") { 
-            post { entity(as[String]) { data =>    
+          path(projectPrefix / "feedbackCapture") {
+            post { entity(as[String]) { data =>
              implicit val formats = DefaultFormats
              val feedbackCaptureRequest = parse(data).extract[FeedbackCaptureRequest]
              var feedbackCapturtResponse: FeedbackCapturtResponse = null
@@ -1647,24 +1647,24 @@ object PekkoHttpConnector {
                     e.printStackTrace()
                 }
                 complete(write(feedbackCapturtResponse))
-             }            
+             }
             }
           },
 
-           path(projectPrefix / "getfeedbackCaptureList") { 
-            post { entity(as[String]) { data =>    
+           path(projectPrefix / "getfeedbackCaptureList") {
+            post { entity(as[String]) { data =>
              implicit val formats = DefaultFormats
-             val getfeedbackCaptureListRequest = parse(data).extract[GetfeedbackCaptureListRequest]
-             var getfeedbackCaptureListResponse: GetfeedbackCaptureListResponse = null
-             val future = Patterns.ask(StarterMain.adminSupervisorActorRef, getfeedbackCaptureListRequest, timeout)
+             val getFeedbackCaptureListRequest = parse(data).extract[GetfeedbackCaptureListRequest]
+             var getFeedbackCaptureListResponse: GetFeedbackCaptureListResponse = null
+             val future = Patterns.ask(StarterMain.adminSupervisorActorRef, getFeedbackCaptureListRequest, timeout)
               try {
-                  getfeedbackCaptureListResponse = Await.result(future, timeout.duration).asInstanceOf[GetfeedbackCaptureListResponse]
+                  getFeedbackCaptureListResponse = Await.result(future, timeout.duration).asInstanceOf[GetFeedbackCaptureListResponse]
                 } catch {
                   case e: Exception =>
                     e.printStackTrace()
                 }
-                complete(write(getfeedbackCaptureListResponse))
-             }            
+                complete(write(getFeedbackCaptureListResponse))
+             }
             }
           },
 

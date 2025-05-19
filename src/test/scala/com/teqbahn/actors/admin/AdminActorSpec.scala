@@ -555,7 +555,7 @@ class AdminActorSpec
       val adminActor = system.actorOf(Props[AdminActor])
       adminActor ! request
 
-      val response = expectMsgType[GetfeedbackCaptureListResponse]
+      val response = expectMsgType[GetFeedbackCaptureListResponse]
       response.response should not be empty
       response.response should contain key likedKey
       response.response should contain key dislikedKey

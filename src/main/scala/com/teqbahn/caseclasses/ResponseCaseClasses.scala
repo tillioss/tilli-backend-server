@@ -68,7 +68,7 @@ case class UpdateLevelAttemptResponse(response: String) extends Response
 
 case class GetGameDateWiseResponse(result: Map[String,Any],totalResult: Long) extends Response
 
-case class GameCsvFileGenrateResponse(response: String) extends Response
+case class GameCsvFileGenerateResponse(response: String) extends Response
 
 case class GameFileStatusResponse(response: String) extends Response
 
@@ -121,21 +121,21 @@ case class GetStoryBasedStatusResponse(response: String) extends Response
 
 case class CaptureLogsResponse(response: String) extends Response
 
-case class GetWebLogsResponse(response: ListMap[String, LogsData], totalResult: Long) extends Response
+case class GetWebLogsResponse(response: Map[String, LogsData], totalResult: Long) extends Response
 
 case class GetAdminLoginResponse(response: String, name: String, responseCode: String, adminType: String, loginId: String) extends Response
 
 case class CreateRoleResponse(response: String) extends Response
 
-case class GetRolesResponse(result: ListMap[String, Role], totalResult: Long) extends Response
+case class GetRolesResponse(result: Map[String, Role], totalResult: Long) extends Response
 
 case class CreateMemberResponse(response: String) extends Response
 
-case class GetMembersResponse(result: ListMap[String, Member], totalResult: Long) extends Response
+case class GetMembersResponse(result: Map[String, Member], totalResult: Long) extends Response
 
 case class CreatePageResponse(response: String) extends Response
 
-case class GetPagesResponse(result: ListMap[String, Page], totalResult: Long) extends Response
+case class GetPagesResponse(result: Map[String, Page], totalResult: Long) extends Response
 
 case class MapUserToRoleResponse(response: String) extends Response
 
@@ -145,9 +145,9 @@ case class GetMapUserToRoleResponse(listOfRoleIds: List[String]) extends Respons
 
 case class GetMapRoleToPageResponse(listOfPageIds: List[String]) extends Response
 
-case class GetRoleAccessResponse(result: ListMap[String, Page]) extends Response
+case class GetRoleAccessResponse(result: Map[String, Page]) extends Response
 
-case class UserAttemptDeatailsBetweenDateRangeResponse(response: Map[String,Any]) extends Response
+case class UserAttemptDetailsBetweenDateRangeResponse(response: Map[String,Any]) extends Response
 
 case class EmotionCaptureResponse(response: String) extends Response
 
@@ -155,7 +155,7 @@ case class GetEmotionCaptureListResponse(response: List[String]) extends Respons
 
 case class FeedbackCapturtResponse(response: String) extends Response
 
-case class GetfeedbackCaptureListResponse(response: Map[String,Any]) extends Response
+case class GetFeedbackCaptureListResponse(response: Map[String,Any]) extends Response
 
 
 
