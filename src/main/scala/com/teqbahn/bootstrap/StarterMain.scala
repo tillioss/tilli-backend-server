@@ -1,19 +1,20 @@
 package com.teqbahn.bootstrap
 
-import java.io.{File}
-import org.apache.pekko.actor.{ActorRef, ActorSystem, Props}
-import org.apache.pekko.http.scaladsl.{Http}
-import org.apache.pekko.stream.{ActorMaterializer}
-import com.typesafe.config.{Config, ConfigFactory}
 import com.teqbahn.actors.admin.AdminActor
 import com.teqbahn.actors.analytics.Accumulators
-import com.teqbahn.actors.analytics.accumulator.{AgeAccumulators, FilterAccumulators, GenderAccumulators, LanguageAccumulators}
 import com.teqbahn.actors.analytics.accumulator.time.{DayAccumulators, MonthAccumulators, YearAccumulators}
+import com.teqbahn.actors.analytics.accumulator.{AgeAccumulators, FilterAccumulators, GenderAccumulators, LanguageAccumulators}
 import com.teqbahn.actors.analytics.result.ResultAccumulator
 import com.teqbahn.actors.logs.LogsActor
 import com.teqbahn.actors.mailer.MailActor
+import com.teqbahn.common.mail.Mailer
 import io.lettuce.core.api.StatefulRedisConnection
 import io.lettuce.core.api.sync.RedisCommands
+import org.apache.pekko.actor.{ActorRef, ActorSystem, Props}
+import org.apache.pekko.http.scaladsl.Http
+import org.apache.pekko.stream.ActorMaterializer
+
+import java.io.File
 
 object StarterMain {
   var envServer = "local" // "live"
@@ -70,7 +71,7 @@ object StarterMain {
       fromMail = args(5)
       fromMailPassword = args(6)
       fileSystemPath = args(7)
-    
+
       // fileSystemPath = "/efs/tilli/"
     } else {
       confFile = "application_live.conf"
@@ -101,7 +102,6 @@ object StarterMain {
     implicit val executionContext = actorSystem.dispatcher
 
 
-
     import io.lettuce.core.RedisClient
     val client: RedisClient = RedisClient.create("redis://" + redisHostPath)
     val connection: StatefulRedisConnection[String, String] = client.connect()
@@ -109,7 +109,8 @@ object StarterMain {
 
 
     adminSupervisorActorRef = actorSystem.actorOf(Props.create(classOf[AdminActor]), "supervised-admin")
-    mailActorRef = actorSystem.actorOf(Props.create(classOf[MailActor]), "actor-mail")
+    val mailer = new Mailer(fromMail, fromMailPassword);
+    mailActorRef = actorSystem.actorOf(Props(new MailActor(mailer)), "actor-mail")
     logsActorRef = actorSystem.actorOf(Props.create(classOf[LogsActor]), "actor-logs")
     // Accumulator
 
@@ -159,14 +160,14 @@ object StarterMain {
     return file
   }
 
- def deleteFilePath(path: String) = {
+  def deleteFilePath(path: String) = {
     val fileTemp = new File(path)
     if (fileTemp.exists) {
-       fileTemp.delete()
+      fileTemp.delete()
     }
   }
 
-   def fileExistCheck(text: String): Boolean = {
+  def fileExistCheck(text: String): Boolean = {
     var bool = false
     val fileTemp = new File(text)
     if (fileTemp.exists) {

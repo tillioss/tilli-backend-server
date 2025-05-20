@@ -41,7 +41,7 @@ libraryDependencies ++=Seq(
   "redis.clients" % "jedis" % "4.3.1",
   "commons-io" % "commons-io" % "2.6",
   "commons-lang" % "commons-lang" % "2.6",
-  "org.apache.commons" % "commons-email" % "1.5",
+  "org.apache.commons" % "commons-email" % "1.6.0",
   "org.projectlombok" % "lombok" % "1.16.16",
   "com.danielasfregola" %% "random-data-generator" % "2.8",
   "org.scalaj" %% "scalaj-http" % "2.4.2",
@@ -51,7 +51,8 @@ libraryDependencies ++=Seq(
   "commons-codec" % "commons-codec" % "1.11",
   "org.apache.poi" % "poi-ooxml" % "4.1.0",
   "org.mockito" % "mockito-core" % "5.8.0" % Test,
-  "org.scalatestplus" %% "mockito-4-11" % "3.2.17.0" % Test
+  "org.scalatestplus" %% "mockito-4-11" % "3.2.18.0" % Test,
+  "com.icegreen" % "greenmail" % "2.0.1" % Test
 )
 
 mainClass in assembly := Some("com.teqbahn.bootstrap.StarterMain")
