@@ -9,6 +9,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.io.{File, FileOutputStream, FileWriter}
+import java.net.UnknownHostException
 import java.util.zip.{ZipEntry, ZipOutputStream}
 
 class PekkoHttpConnectorSpec extends AnyWordSpec with Matchers with ScalatestRouteTest {
@@ -39,6 +40,13 @@ class PekkoHttpConnectorSpec extends AnyWordSpec with Matchers with ScalatestRou
     }
     zip.close()
     zipFile
+  }
+
+  def mockHttpResponse(status: Int, body: String): HttpResponse = {
+    HttpResponse(
+      status = StatusCode.int2StatusCode(status),
+      entity = HttpEntity(ContentTypes.`application/json`, body)
+    )
   }
 
   "PekkoHttpConnector" should {
@@ -902,4 +910,17 @@ class PekkoHttpConnectorSpec extends AnyWordSpec with Matchers with ScalatestRou
       }
     }
   }
+
+  "handle connection failures" in {
+    val unreachableHost = "http://unreachable.local"
+    intercept[UnknownHostException] {
+      PekkoHttpConnector.httpGet(unreachableHost)
+    }
+
+    val nonexistentDomain = "http://nonexistent.domain.local"
+    intercept[UnknownHostException] {
+      PekkoHttpConnector.httpGet(nonexistentDomain)
+    }
+  }
+
 }
