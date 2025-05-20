@@ -1,17 +1,15 @@
 package com.teqbahn.common.mail
 
-import com.teqbahn.bootstrap.StarterMain
+import jakarta.mail.{Message, Session, Transport}
+import jakarta.mail.internet.{InternetAddress, MimeMessage}
 
 import java.util.Properties
-import javax.mail.{Message, Session}
-import javax.mail.internet.{InternetAddress, MimeMessage}
 
-object Mailer {
-  val host = "smtp.gmail.com"
-  val port = "587"
+class Mailer(fromEmail: String, password: String) {
+  protected val host = "smtp.gmail.com"
+  protected val port = "587"
 
-
-  def sendMail(text:String, subject:String, address : String) = {
+  def sendMail(text: String, subject: String, address: String): Unit = {
     val properties = new Properties()
     properties.put("mail.smtp.port", port)
     properties.put("mail.smtp.auth", "true")
@@ -19,12 +17,17 @@ object Mailer {
 
     val session = Session.getDefaultInstance(properties, null)
     val message = new MimeMessage(session)
-    message.addRecipient(Message.RecipientType.TO, new InternetAddress(address));
+
+    message.addRecipient(Message.RecipientType.TO, new InternetAddress(address, true))
     message.setSubject(subject)
     message.setContent(text, "text/html")
 
-    val transport = session.getTransport("smtp")
-    transport.connect(host, StarterMain.fromMail, StarterMain.fromMailPassword)
-    transport.sendMessage(message, message.getAllRecipients)
+    val transport: Transport = session.getTransport("smtp")
+    try {
+      transport.connect(host, fromEmail, password)
+      transport.sendMessage(message, message.getAllRecipients)
+    } finally {
+      transport.close()
+    }
   }
 }
