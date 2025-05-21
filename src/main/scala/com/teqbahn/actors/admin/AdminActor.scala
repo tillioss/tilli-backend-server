@@ -1,31 +1,23 @@
 package com.teqbahn.actors.admin
 
-import java.io.File
-import java.util.{Date, Random, UUID}
-import org.apache.pekko.actor.SupervisorStrategy.Stop
-import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, PoisonPill, Props, ReceiveTimeout}
+import com.teqbahn.actors.excel.GenerateExcel
 import com.teqbahn.bootstrap.StarterMain
+import com.teqbahn.bootstrap.StarterMain.redisCommands
 import com.teqbahn.caseclasses._
 import com.teqbahn.global.{Encryption, GlobalConstants, GlobalMessageConstants, ZiRedisCons}
 import com.teqbahn.utils.ZiFunctions
-import org.json4s.NoTypeHints
-import org.json4s.native.Serialization
-import com.teqbahn.bootstrap.StarterMain.{redisCommands}
-import org.json4s.jackson.Serialization.{read, write}
-
-import com.fasterxml.jackson.databind.{JsonNode}
-import com.fasterxml.jackson.databind.node.ArrayNode
-import java.sql.Timestamp
-import scala.collection.immutable.ListMap
+import org.apache.pekko.actor.{Actor, ActorRef, ActorSystem, Props, ReceiveTimeout}
 import org.joda.time.{DateTime, Days}
-import scala.collection.mutable.ListBuffer
-import com.teqbahn.actors.excel.{GenerateExcel}
+import org.json4s.{DefaultFormats, Formats, NoTypeHints}
+import org.json4s.jackson.Serialization.{read, write}
 import org.json4s.native.JsonMethods.parse
-import org.json4s.DefaultFormats
+import org.json4s.native.Serialization
 
-
-
-
+import java.io.File
+import java.sql.Timestamp
+import java.util.{Date, Random, UUID}
+import scala.collection.immutable.ListMap
+import scala.collection.mutable.ListBuffer
 
 
 object AdminActor {
@@ -34,8 +26,8 @@ object AdminActor {
 
 class AdminActor() extends Actor {
 
-  var actorSystem = this.context.system
-  implicit val formats = Serialization.formats(NoTypeHints)
+  var actorSystem: ActorSystem = this.context.system
+  implicit val formats: AnyRef with Formats = Serialization.formats(NoTypeHints)
   val random = new Random();
 
   import scala.collection.JavaConverters._
@@ -48,7 +40,7 @@ class AdminActor() extends Actor {
       redisCommands.hset(ZiRedisCons.ADMIN_LOGIN_CREDENTIALS, "tilliadmin", write(adminLogin))
     }
 
-     if (!redisCommands.hexists(ZiRedisCons.ADMIN_LOGIN_CREDENTIALS, "admin_tilli@teqbahn.com")) {
+    if (!redisCommands.hexists(ZiRedisCons.ADMIN_LOGIN_CREDENTIALS, "admin_tilli@teqbahn.com")) {
       val encryptPwd = Encryption.encrypt("admin", "zPVB_#84")
       val loginId = ZiFunctions.getId()
       var adminLogin = AdminLogin("admin", encryptPwd, "tilli-admin", loginId)
@@ -118,23 +110,23 @@ class AdminActor() extends Actor {
       sender ! CreateUserResponse(GlobalMessageConstants.SUCCESS)
 
 
-     case request: CreateGameUserRequest =>
+    case request: CreateGameUserRequest =>
       var userId = ZiFunctions.getId()
       var status = GlobalConstants.ACTIVE
       var userEmailId = request.emailId.toLowerCase.trim
       val createdAt = new Timestamp((new Date).getTime).getTime
-      var response  = GlobalMessageConstants.FAILURE
-       if(!redisCommands.hexists(ZiRedisCons.USER_LOGIN_CREDENTIALS, userEmailId)) {
+      var response = GlobalMessageConstants.FAILURE
+      if (!redisCommands.hexists(ZiRedisCons.USER_LOGIN_CREDENTIALS, userEmailId)) {
         var user = User(userId = userId, emailId = userEmailId, name = "", password = request.password, nameOfChild = request.nameOfChild, ageOfChild = request.ageOfChild, passcode = request.passcode, status = status, genderOfChild = Option(request.genderOfChild), createdAt = Option(createdAt), schoolName = Option(request.schoolName), className = Option(request.className))
         redisCommands.hset(ZiRedisCons.USER_JSON, userId, write(user))
         var userloginCredentials = UserLoginCredential(userId, status, request.password)
         redisCommands.hset(ZiRedisCons.USER_LOGIN_CREDENTIALS, userEmailId, write(userloginCredentials))
         redisCommands.lpush(ZiRedisCons.ADMIN_userIdsList, userId)
         // getUserActorRef() ! InitUsersActorRequest(userId)
-        response  = GlobalMessageConstants.SUCCESS
+        response = GlobalMessageConstants.SUCCESS
       }
-    
-     sender ! CreateGameUserResponse(response)
+
+      sender ! CreateGameUserResponse(response)
 
     case createDemoUserRequest: CreateDemoUserRequest =>
 
@@ -490,22 +482,21 @@ class AdminActor() extends Actor {
         pageType = updateThemeContentRequest.pageType.get
       }
       var updateThemeContent = ThemeLayerContent(layers = updateThemeContentRequest.data,
-      pageType = Option(pageType))      
+        pageType = Option(pageType))
       redisCommands.hset(ZiRedisCons.THEME_CONTENT_LAYERES_JSON, updateThemeContentRequest.themeId, write(updateThemeContent))
       sender ! UpdateThemeContentResponse(GlobalMessageConstants.SUCCESS)
 
     case getThemeContentRequest: GetThemeContentRequest =>
       var themeContent = redisCommands.hget(ZiRedisCons.THEME_CONTENT_LAYERES_JSON, getThemeContentRequest.themeId)
       var resultMap: ThemeLayerContent = null
-      if(themeContent !=null)
-      {
-       resultMap = read[ThemeLayerContent](themeContent)
-      }         
+      if (themeContent != null) {
+        resultMap = read[ThemeLayerContent](themeContent)
+      }
       sender ! GetThemeContentResponse(resultMap)
 
     case addThemeRequest: AddThemeRequest =>
       var themeId = ZiFunctions.getId()
-      var themeData = Theme(themeId, addThemeRequest.name, addThemeRequest.image, Option(addThemeRequest.themeType),addThemeRequest.gameFile)
+      var themeData = Theme(themeId, addThemeRequest.name, addThemeRequest.image, Option(addThemeRequest.themeType), addThemeRequest.gameFile)
       redisCommands.hset(ZiRedisCons.THEME_JSON, themeId, write(themeData))
       sender ! AddThemeResponse(GlobalMessageConstants.SUCCESS)
 
@@ -517,7 +508,7 @@ class AdminActor() extends Actor {
         var themeName = themeData.name
         var themeImage = themeData.image
         var themeType = themeData.themeType
-         var gameFile = themeData.gameFile
+        var gameFile = themeData.gameFile
         if (updateThemeRequest.name != null && !updateThemeRequest.name.isEmpty) {
           themeName = updateThemeRequest.name
         }
@@ -531,7 +522,7 @@ class AdminActor() extends Actor {
         if (updateThemeRequest.gameFile != null) {
           gameFile = updateThemeRequest.gameFile
         }
-        var themeDataNew = themeData.copy(name = themeName, image = themeImage, themeType = themeType,gameFile = gameFile)
+        var themeDataNew = themeData.copy(name = themeName, image = themeImage, themeType = themeType, gameFile = gameFile)
         redisCommands.hset(ZiRedisCons.THEME_JSON, updateThemeRequest.themeId, write(themeDataNew))
         sender ! UpdateThemeResponse(GlobalMessageConstants.SUCCESS)
 
@@ -730,24 +721,23 @@ class AdminActor() extends Actor {
 
         }
 
-         /*date wise*/
-          var dateString=updateLevelAttemptRequest.dateString
+        /*date wise*/
+        var dateString = updateLevelAttemptRequest.dateString
 
-          var attemptKey=updateLevelAttemptRequest.userId + "_" + updateLevelAttemptRequest.levelId+"_"+attemptCount.toString
+        var attemptKey = updateLevelAttemptRequest.userId + "_" + updateLevelAttemptRequest.levelId + "_" + attemptCount.toString
 
-          var jsonDataKeyExists=ZiRedisCons.USER_DATE_WISE_EXISTS + "_" + updateLevelAttemptRequest.userId+"_"+dateString
+        var jsonDataKeyExists = ZiRedisCons.USER_DATE_WISE_EXISTS + "_" + updateLevelAttemptRequest.userId + "_" + dateString
 
-          var dateWiseAttemtData=ZiRedisCons.USER_DATE_WISE_ATTEMPT_DATA_LIST+"_"+updateLevelAttemptRequest.userId+"_"+dateString
-          redisCommands.lpush(dateWiseAttemtData, attemptKey)
-           
-          if(redisCommands.exists(jsonDataKeyExists) == 0)
-           {                
-             var dateWiseKey=ZiRedisCons.USER_DATE_WISE_ATTEMPT_LIST+"_"+dateString
-             redisCommands.lpush(dateWiseKey, updateLevelAttemptRequest.userId)
-             redisCommands.hset(jsonDataKeyExists,updateLevelAttemptRequest.userId,dateString)
-           }
-         
-          /*date wise*/
+        var dateWiseAttemtData = ZiRedisCons.USER_DATE_WISE_ATTEMPT_DATA_LIST + "_" + updateLevelAttemptRequest.userId + "_" + dateString
+        redisCommands.lpush(dateWiseAttemtData, attemptKey)
+
+        if (redisCommands.exists(jsonDataKeyExists) == 0) {
+          var dateWiseKey = ZiRedisCons.USER_DATE_WISE_ATTEMPT_LIST + "_" + dateString
+          redisCommands.lpush(dateWiseKey, updateLevelAttemptRequest.userId)
+          redisCommands.hset(jsonDataKeyExists, updateLevelAttemptRequest.userId, dateString)
+        }
+
+        /*date wise*/
 
 
         /*     attemptCount = existAttemptCount + 1
@@ -778,9 +768,9 @@ class AdminActor() extends Actor {
 
       sender ! UpdateLevelAttemptResponse(response)
 
-    case getGameDateWiseReportRequest: GetGameDateWiseReportRequest =>      
+    case getGameDateWiseReportRequest: GetGameDateWiseReportRequest =>
       var resultData: ListMap[String, Any] = ListMap.empty
-      var totalRecord: Long = 0          
+      var totalRecord: Long = 0
 
       val startDate = getGameDateWiseReportRequest.startDate
       val endDate = getGameDateWiseReportRequest.endDate
@@ -790,109 +780,101 @@ class AdminActor() extends Actor {
 
       val daysCount = Days.daysBetween(sDate, eDate).getDays() + 1
       var listOfUserIds: ListBuffer[String] = ListBuffer.empty
-       
+
       (0 until daysCount).map(sDate.plusDays(_)).foreach(d => {
         val dateStr = getDateStr(d)
-        var filterkey = ZiRedisCons.USER_DATE_WISE_ATTEMPT_LIST+"_"+dateStr
+        var filterkey = ZiRedisCons.USER_DATE_WISE_ATTEMPT_LIST + "_" + dateStr
         var totalSize = redisCommands.llen(filterkey)
         if (totalSize > 0) {
-           val lisOfIds = redisCommands.lrange(filterkey, 0,- 1).asScala.toList
-           for (idStr <- lisOfIds) {
+          val lisOfIds = redisCommands.lrange(filterkey, 0, -1).asScala.toList
+          for (idStr <- lisOfIds) {
             var idArr = idStr
             var userId = idArr
-            if(!listOfUserIds.contains(userId))
-            {
-             listOfUserIds += (userId)
-            }            
-           }
-         }
-
-        }) 
-
-        var noOfResultCount=getGameDateWiseReportRequest.pageLimit*getGameDateWiseReportRequest.noOfPage
-
-        if(listOfUserIds.size > 0)
-        {
-          totalRecord =listOfUserIds.size
-          var limitLoop=0    
-          var startLimit=1  
-          var endOfLimit=1   
-          var minusValue=(noOfResultCount - getGameDateWiseReportRequest.pageLimit)+1
-
-          if(minusValue > 0)
-          {
-            startLimit = minusValue
-            endOfLimit = noOfResultCount
-          }
-
-          if(totalRecord < endOfLimit)
-          {
-            endOfLimit = totalRecord.toInt
-          }
-
-          for( limitLoop <- startLimit to endOfLimit){
-            var dataMap: Map[String, Any] = Map.empty
-            var userId = listOfUserIds(limitLoop-1)   
-            var userDataStr = redisCommands.hget(ZiRedisCons.USER_JSON, userId)
-            val userData = read[User](userDataStr)
-
-            var fileStatus="-"
-            var fileCreatedAt="-"
-            
-             val excelFileProcessData = redisCommands.hget(ZiRedisCons.USER_EXCEL_SHEET_STATUS +"_"+ userId, userId)
-            if(checkIsNotEmpty(excelFileProcessData))
-            {
-              val excelFileData = read[ExcelSheetGenerateStatus](excelFileProcessData)
-              fileStatus  =  excelFileData.processStatus
-              fileCreatedAt  =  excelFileData.createdAt.toString
-
+            if (!listOfUserIds.contains(userId)) {
+              listOfUserIds += (userId)
             }
-            dataMap += ("userId" -> userId)
-            dataMap += ("nameOfChild" -> userData.nameOfChild)    
-            dataMap += ("fileStatus" -> fileStatus)   
-            dataMap += ("fileCreatedAt" -> fileCreatedAt)          
-            resultData += (userId -> dataMap)
-            
           }
         }
 
-  
+      })
 
-      sender() ! GetGameDateWiseResponse(resultData, totalRecord)    
+      var noOfResultCount = getGameDateWiseReportRequest.pageLimit * getGameDateWiseReportRequest.noOfPage
+
+      if (listOfUserIds.size > 0) {
+        totalRecord = listOfUserIds.size
+        var limitLoop = 0
+        var startLimit = 1
+        var endOfLimit = 1
+        var minusValue = (noOfResultCount - getGameDateWiseReportRequest.pageLimit) + 1
+
+        if (minusValue > 0) {
+          startLimit = minusValue
+          endOfLimit = noOfResultCount
+        }
+
+        if (totalRecord < endOfLimit) {
+          endOfLimit = totalRecord.toInt
+        }
+
+        for (limitLoop <- startLimit to endOfLimit) {
+          var dataMap: Map[String, Any] = Map.empty
+          var userId = listOfUserIds(limitLoop - 1)
+          var userDataStr = redisCommands.hget(ZiRedisCons.USER_JSON, userId)
+          val userData = read[User](userDataStr)
+
+          var fileStatus = "-"
+          var fileCreatedAt = "-"
+
+          val excelFileProcessData = redisCommands.hget(ZiRedisCons.USER_EXCEL_SHEET_STATUS + "_" + userId, userId)
+          if (checkIsNotEmpty(excelFileProcessData)) {
+            val excelFileData = read[ExcelSheetGenerateStatus](excelFileProcessData)
+            fileStatus = excelFileData.processStatus
+            fileCreatedAt = excelFileData.createdAt.toString
+
+          }
+          dataMap += ("userId" -> userId)
+          dataMap += ("nameOfChild" -> userData.nameOfChild)
+          dataMap += ("fileStatus" -> fileStatus)
+          dataMap += ("fileCreatedAt" -> fileCreatedAt)
+          resultData += (userId -> dataMap)
+
+        }
+      }
+
+
+      sender() ! GetGameDateWiseResponse(resultData, totalRecord)
 
     case gameCsvFileGenrateRequest: GameCsvFileGenrateRequest =>
-    var response = GlobalMessageConstants.FAILURE
-    // var uniqueId=UUID.randomUUID().toString()
-    val createdAt = new Timestamp((new Date).getTime).getTime
-    var excelSheetStatus=ExcelSheetGenerateStatus(createdAt=createdAt,processStatus=GlobalMessageConstants.PROCESSING,userId=gameCsvFileGenrateRequest.userId)
-        redisCommands.hset(ZiRedisCons.USER_EXCEL_SHEET_STATUS +"_"+ gameCsvFileGenrateRequest.userId, gameCsvFileGenrateRequest.userId, write(excelSheetStatus))
-        
-    getExcelActorRef("excelGeneratefiles-"+gameCsvFileGenrateRequest.userId).forward(gameCsvFileGenrateRequest)
-    
-    response = GlobalMessageConstants.SUCCESS    
-    sender() ! GameCsvFileGenerateResponse(response)
+      var response = GlobalMessageConstants.FAILURE
+      // var uniqueId=UUID.randomUUID().toString()
+      val createdAt = new Timestamp((new Date).getTime).getTime
+      var excelSheetStatus = ExcelSheetGenerateStatus(createdAt = createdAt, processStatus = GlobalMessageConstants.PROCESSING, userId = gameCsvFileGenrateRequest.userId)
+      redisCommands.hset(ZiRedisCons.USER_EXCEL_SHEET_STATUS + "_" + gameCsvFileGenrateRequest.userId, gameCsvFileGenrateRequest.userId, write(excelSheetStatus))
+
+      getExcelActorRef("excelGeneratefiles-" + gameCsvFileGenrateRequest.userId).forward(gameCsvFileGenrateRequest)
+
+      response = GlobalMessageConstants.SUCCESS
+      sender() ! GameCsvFileGenerateResponse(response)
 
 
-    case gameFileStatusRequest: GameFileStatusRequest =>        
-        var response = GlobalMessageConstants.PROCESSING         
-        var userFolderPath= StarterMain.fileSystemPath + "/excel/"+gameFileStatusRequest.userId
-        var fileName = gameFileStatusRequest.userId+".xls"
-        var fileOutPutPath = userFolderPath+"/"+fileName 
-        var excelFileCheck = StarterMain.fileExistCheck(fileOutPutPath)
-        val excelFileProcessData = redisCommands.hget(ZiRedisCons.USER_EXCEL_SHEET_STATUS +"_"+ gameFileStatusRequest.userId, gameFileStatusRequest.userId)
-        if(excelFileCheck && checkIsNotEmpty(excelFileProcessData))
-        {
-           val createdAt = new Timestamp((new Date).getTime).getTime    
-           val data = read[ExcelSheetGenerateStatus](excelFileProcessData)
-           if(data.processStatus == GlobalMessageConstants.PROCESSING)
-           {
-            var data_New=data.copy(processStatus = GlobalMessageConstants.COMPLETED,userId = gameFileStatusRequest.userId,createdAt = createdAt)
-            redisCommands.hset(ZiRedisCons.USER_EXCEL_SHEET_STATUS +"_"+gameFileStatusRequest.userId, gameFileStatusRequest.userId, write(data_New))
-            response = GlobalMessageConstants.SUCCESS 
-           }
-          
+    case gameFileStatusRequest: GameFileStatusRequest =>
+      var response = GlobalMessageConstants.PROCESSING
+      var userFolderPath = StarterMain.fileSystemPath + "/excel/" + gameFileStatusRequest.userId
+      var fileName = gameFileStatusRequest.userId + ".xls"
+      var fileOutPutPath = userFolderPath + "/" + fileName
+      var excelFileCheck = StarterMain.fileExistCheck(fileOutPutPath)
+      val excelFileProcessData = redisCommands.hget(ZiRedisCons.USER_EXCEL_SHEET_STATUS + "_" + gameFileStatusRequest.userId, gameFileStatusRequest.userId)
+      if (excelFileCheck && checkIsNotEmpty(excelFileProcessData)) {
+        val createdAt = new Timestamp((new Date).getTime).getTime
+        val data = read[ExcelSheetGenerateStatus](excelFileProcessData)
+        if (data.processStatus == GlobalMessageConstants.PROCESSING) {
+          var data_New = data.copy(processStatus = GlobalMessageConstants.COMPLETED, userId = gameFileStatusRequest.userId, createdAt = createdAt)
+          redisCommands.hset(ZiRedisCons.USER_EXCEL_SHEET_STATUS + "_" + gameFileStatusRequest.userId, gameFileStatusRequest.userId, write(data_New))
+          response = GlobalMessageConstants.SUCCESS
+        }
 
-        }             
+
+      }
       sender() ! GameFileStatusResponse(response)
 
 
@@ -1311,74 +1293,71 @@ class AdminActor() extends Actor {
       sender ! GetRoleAccessResponse(resultMap)
     }
     case getUserAttemptDeatailsBetweenDate: UserAttemptDeatailsBetweenDateRangeRequest => {
-         var resultMap: ListMap[String, Any] = ListMap.empty  
-        if(GlobalConstants.TILLIAPIACCESSPASSWORD == getUserAttemptDeatailsBetweenDate.userPassword && GlobalConstants.TILLIAPIACCESSKEY == getUserAttemptDeatailsBetweenDate.userKey)
-        {
-          
-         
-          val userId = getUserAttemptDeatailsBetweenDate.userId
-          val startDate = getUserAttemptDeatailsBetweenDate.startDate
-          val endDate = getUserAttemptDeatailsBetweenDate.endDate
-          val sDate = DateTime.parse(startDate)
-          val eDate = DateTime.parse(endDate)
-          var userDataStr = redisCommands.hget(ZiRedisCons.USER_JSON, userId)
-          val userData = read[User](userDataStr)
-          var dataMap: Map[String, Any] = Map.empty         
-          var dateObject: Map[String, Any] = Map.empty                                    
-          val daysCount = Days.daysBetween(sDate, eDate).getDays() + 1
-          val convertToInt:Long = daysCount
-          if(convertToInt <= GlobalMessageConstants.DATE_RANGE_COUNT)
-          {
+      var resultMap: ListMap[String, Any] = ListMap.empty
+      if (GlobalConstants.TILLIAPIACCESSPASSWORD == getUserAttemptDeatailsBetweenDate.userPassword && GlobalConstants.TILLIAPIACCESSKEY == getUserAttemptDeatailsBetweenDate.userKey) {
+
+
+        val userId = getUserAttemptDeatailsBetweenDate.userId
+        val startDate = getUserAttemptDeatailsBetweenDate.startDate
+        val endDate = getUserAttemptDeatailsBetweenDate.endDate
+        val sDate = DateTime.parse(startDate)
+        val eDate = DateTime.parse(endDate)
+        var userDataStr = redisCommands.hget(ZiRedisCons.USER_JSON, userId)
+        val userData = read[User](userDataStr)
+        var dataMap: Map[String, Any] = Map.empty
+        var dateObject: Map[String, Any] = Map.empty
+        val daysCount = Days.daysBetween(sDate, eDate).getDays() + 1
+        val convertToInt: Long = daysCount
+        if (convertToInt <= GlobalMessageConstants.DATE_RANGE_COUNT) {
           resultMap += ("status" -> GlobalMessageConstants.SUCCESS)
           var shortUserInfo = ShortUserInfo(userData.userId, userData.emailId, userData.name, userData.nameOfChild, userData.ageOfChild, userData.status, userData.lastLogin, userData.lastLogin, userData.genderOfChild, userData.createdAt)
-          resultMap += ("userInformation" -> shortUserInfo) 
+          resultMap += ("userInformation" -> shortUserInfo)
           (0 until daysCount).map(sDate.plusDays(_)).foreach(d => {
             val dateStr = getDateStr(d)
-            var filterkey = ZiRedisCons.USER_DATE_WISE_ATTEMPT_LIST+"_"+dateStr
+            var filterkey = ZiRedisCons.USER_DATE_WISE_ATTEMPT_LIST + "_" + dateStr
             var totalSize = redisCommands.llen(filterkey)
             if (totalSize > 0) {
-              val lisOfIds = redisCommands.lrange(filterkey, 0,- 1).asScala.toList
+              val lisOfIds = redisCommands.lrange(filterkey, 0, -1).asScala.toList
               var attemptDataForUser: Map[String, Any] = Map.empty
-              for (idStr <- lisOfIds) {  
+              for (idStr <- lisOfIds) {
                 var getUserId = idStr
-                  if(userId == getUserId)
-                  {    
-                    var filterDatekey = ZiRedisCons.USER_DATE_WISE_ATTEMPT_DATA_LIST+"_"+getUserAttemptDeatailsBetweenDate.userId+"_"+dateStr  
-                    var filterDatekeySize = redisCommands.llen(filterDatekey)      
-                    if (filterDatekeySize > 0) {
-                      val lisOfIds = redisCommands.lrange(filterDatekey, 0,- 1).asScala.toList
-                      for (idStr_1 <- lisOfIds) {
-                        var idArr = idStr_1.split("_")
-                        if (idArr.length > 2) {
+                if (userId == getUserId) {
+                  var filterDatekey = ZiRedisCons.USER_DATE_WISE_ATTEMPT_DATA_LIST + "_" + getUserAttemptDeatailsBetweenDate.userId + "_" + dateStr
+                  var filterDatekeySize = redisCommands.llen(filterDatekey)
+                  if (filterDatekeySize > 0) {
+                    val lisOfIds = redisCommands.lrange(filterDatekey, 0, -1).asScala.toList
+                    for (idStr_1 <- lisOfIds) {
+                      var idArr = idStr_1.split("_")
+                      if (idArr.length > 2) {
                         var userId_1 = idArr(0)
                         var levelId = idArr(1)
-                        var attemptCount = idArr(2) 
+                        var attemptCount = idArr(2)
                         if (redisCommands.hexists(ZiRedisCons.USER_GAME_ATTEMPT_JSON + "_" + userId + "_" + levelId, attemptCount)) {
                           var attemptJsonStr = redisCommands.hget(ZiRedisCons.USER_GAME_ATTEMPT_JSON + "_" + userId + "_" + levelId, attemptCount)
                           val levelAttempt: LevelAttempt = read[LevelAttempt](attemptJsonStr)
-                     
-                          attemptDataForUser += (attemptCount -> levelAttempt)
 
-                          }
+                          attemptDataForUser += (attemptCount -> levelAttempt)
 
                         }
 
                       }
-                    }  
-                    
+
                     }
-                }              
+                  }
+
+                }
+              }
               dateObject += (dateStr -> attemptDataForUser)
               resultMap += ("attemptInfomation" -> dateObject)
             }
-          }) 
-          }else{
-            resultMap += ("status" -> GlobalMessageConstants.DATE_RANGE_MESSAGE)
-          }
-                    
-        }else{
-          resultMap += ("status" -> GlobalMessageConstants.FAILURE)
-        }          
+          })
+        } else {
+          resultMap += ("status" -> GlobalMessageConstants.DATE_RANGE_MESSAGE)
+        }
+
+      } else {
+        resultMap += ("status" -> GlobalMessageConstants.FAILURE)
+      }
       sender ! UserAttemptDetailsBetweenDateRangeResponse(resultMap)
     }
 
@@ -1390,29 +1369,28 @@ class AdminActor() extends Actor {
       var attemptCount = emotionCaptureRequest.attemptCount
       var status = GlobalMessageConstants.FAILURE
       var underScore = "_"
-      var key_1 = ZiRedisCons.TRACKING_GAME_DATA + underScore + ZiRedisCons.EMOTION +  underScore + userId + underScore + levelId + underScore + themeId
-      var checkKeyExits = key_1 + underScore  + attemptCount  + underScore  + ZiRedisCons.COUNT  
+      var key_1 = ZiRedisCons.TRACKING_GAME_DATA + underScore + ZiRedisCons.EMOTION + underScore + userId + underScore + levelId + underScore + themeId
+      var checkKeyExits = key_1 + underScore + attemptCount + underScore + ZiRedisCons.COUNT
       var defaultCount = 1
-      if(checkIsNotEmpty(levelId) && GlobalMessageConstants.EMOTION_TYPES.contains(emotionKey) && redisCommands.exists(checkKeyExits) == 0)
-      {      
-      var counter = redisCommands.get(checkKeyExits)
-      if (counter != null) {
-         defaultCount = counter.toInt  + 1 
-      } 
-      redisCommands.set(checkKeyExits, defaultCount.toString)     
-      redisCommands.lpush(ZiRedisCons.TRACKING_GAME_DATA + underScore + ZiRedisCons.EMOTION  +  underScore + userId + underScore + levelId + underScore + themeId, emotionKey.toString)           
-      status = GlobalMessageConstants.SUCCESS
-      }          
+      if (checkIsNotEmpty(levelId) && GlobalMessageConstants.EMOTION_TYPES.contains(emotionKey) && redisCommands.exists(checkKeyExits) == 0) {
+        var counter = redisCommands.get(checkKeyExits)
+        if (counter != null) {
+          defaultCount = counter.toInt + 1
+        }
+        redisCommands.set(checkKeyExits, defaultCount.toString)
+        redisCommands.lpush(ZiRedisCons.TRACKING_GAME_DATA + underScore + ZiRedisCons.EMOTION + underScore + userId + underScore + levelId + underScore + themeId, emotionKey.toString)
+        status = GlobalMessageConstants.SUCCESS
+      }
       sender ! EmotionCaptureResponse(status)
     }
 
     case getEmotionCaptureListRequest: GetEmotionCaptureListRequest => {
       var userId = getEmotionCaptureListRequest.userId
       var levelId = getEmotionCaptureListRequest.levelId
-      var themeId = getEmotionCaptureListRequest.themeId      
+      var themeId = getEmotionCaptureListRequest.themeId
       var underScore = "_"
-      var filterKey = ZiRedisCons.TRACKING_GAME_DATA  + underScore + ZiRedisCons.EMOTION + underScore + userId + underScore + levelId + underScore + themeId
-      val listOfEmotions = redisCommands.lrange(filterKey, 0,6).asScala.toList  
+      var filterKey = ZiRedisCons.TRACKING_GAME_DATA + underScore + ZiRedisCons.EMOTION + underScore + userId + underScore + levelId + underScore + themeId
+      val listOfEmotions = redisCommands.lrange(filterKey, 0, 6).asScala.toList
       sender ! GetEmotionCaptureListResponse(listOfEmotions)
     }
 
@@ -1429,29 +1407,27 @@ class AdminActor() extends Actor {
       var userId_LevelId = userId + underScore + levelId
       var initalString = ZiRedisCons.TRACKING_GAME_DATA + underScore + ZiRedisCons.FEEDBACKTYPE
       var filterKey = initalString + underScore + userId + underScore + levelId + underScore + themeId + underScore
-      var filterKey_2 =  initalString + underScore + userId_LevelId
+      var filterKey_2 = initalString + underScore + userId_LevelId
 
 
       var defaultCount = 1
-      if(checkIsNotEmpty(activity) && checkIsNotEmpty(feedBackKey) && checkIsNotEmpty(levelId) &&  GlobalMessageConstants.FEEDBACK_TYPES.contains(feedBackKey) && GlobalMessageConstants.ACTIVITY.contains(activity))
-      {
-          var key_1 = filterKey + activity + underScore + feedBackKey 
-          var countKey = key_1 + underScore +  ZiRedisCons.COUNT  
-          var attemptExistsKeyCheck =  key_1 + underScore +  attemptKey + attemptCount  + underScore +  ZiRedisCons.COUNT            
-          var suggestionList = filterKey_2  + underScore +  feedBackKey                     
-          // var feedBackHsetStore =  initalString + underScore  + userId_LevelId 
-          // var feedBackChooseKey = initalString + underScore + feedBackKey          
-          
-          if(redisCommands.exists(attemptExistsKeyCheck) == 0)
-          {            
+      if (checkIsNotEmpty(activity) && checkIsNotEmpty(feedBackKey) && checkIsNotEmpty(levelId) && GlobalMessageConstants.FEEDBACK_TYPES.contains(feedBackKey) && GlobalMessageConstants.ACTIVITY.contains(activity)) {
+        var key_1 = filterKey + activity + underScore + feedBackKey
+        var countKey = key_1 + underScore + ZiRedisCons.COUNT
+        var attemptExistsKeyCheck = key_1 + underScore + attemptKey + attemptCount + underScore + ZiRedisCons.COUNT
+        var suggestionList = filterKey_2 + underScore + feedBackKey
+        // var feedBackHsetStore =  initalString + underScore  + userId_LevelId
+        // var feedBackChooseKey = initalString + underScore + feedBackKey
+
+        if (redisCommands.exists(attemptExistsKeyCheck) == 0) {
           var counter = redisCommands.get(countKey)
           if (counter != null) {
-            defaultCount = counter.toInt  + 1 
-          } 
+            defaultCount = counter.toInt + 1
+          }
           var addCount = key_1 + underScore + defaultCount
           // println("countKey-->" + countKey)
           // println("suggestionList-->" + suggestionList)   
-          var hsetKey = countKey + underScore + "data"   
+          var hsetKey = countKey + underScore + "data"
           // println("hsetKey-->" + hsetKey)  
 
           // println("feedBackHsetStore-->"+feedBackHsetStore)
@@ -1462,25 +1438,24 @@ class AdminActor() extends Actor {
           val feedBackStoreData = FeedBackCaptureData(activity, defaultCount)
           // println("-->"+write(feedBackStoreData))       
           // redisCommands.lpush(suggestionList, countKey)  
-          redisCommands.zadd(suggestionList, defaultCount, countKey)        
+          redisCommands.zadd(suggestionList, defaultCount, countKey)
           redisCommands.hset(hsetKey, suggestionList, write(feedBackStoreData))
 
-          }
+        }
 
-     
 
-          status = GlobalMessageConstants.SUCCESS
+        status = GlobalMessageConstants.SUCCESS
       }
-          
+
       sender ! FeedbackCapturtResponse(status)
     }
 
-     case getfeedbackCaptureListRequest: GetfeedbackCaptureListRequest => {
+    case getfeedbackCaptureListRequest: GetfeedbackCaptureListRequest => {
       var userId = getfeedbackCaptureListRequest.userId
       var levelId = getfeedbackCaptureListRequest.levelId
-      var themeId = getfeedbackCaptureListRequest.themeId      
+      var themeId = getfeedbackCaptureListRequest.themeId
       var underScore = "_"
-      var resultMap: ListMap[String, Any] = ListMap.empty 
+      var resultMap: ListMap[String, Any] = ListMap.empty
       var count = ZiRedisCons.COUNT
       var initalString = ZiRedisCons.TRACKING_GAME_DATA + underScore + ZiRedisCons.FEEDBACKTYPE
       var filterKey = initalString + underScore + userId + underScore + levelId + underScore + themeId + underScore
@@ -1489,50 +1464,49 @@ class AdminActor() extends Actor {
       var liked = GlobalMessageConstants.FEEDBACK_TYPES(0)
       var neutral = GlobalMessageConstants.FEEDBACK_TYPES(1)
       var disliked = GlobalMessageConstants.FEEDBACK_TYPES(2)
-      var filterKey_2 =  initalString + underScore + userId_LevelId
-    
+      var filterKey_2 = initalString + underScore + userId_LevelId
 
-    
-      var likedKey = filterKey_2  + underScore + liked
-      var dislikedKey = filterKey_2  + underScore + disliked
-      var neutralKey =  filterKey_2  + underScore + neutral
-      val listOfLiked = redisCommands.zrevrange(likedKey,0,2).asScala.toList  
-      val listOfDisliked = redisCommands.zrevrange(dislikedKey,0,2).asScala.toList 
-      val listOfNeutral = redisCommands.zrevrange(neutralKey,0,2).asScala.toList 
-      var listOfLikedNew: ListMap[String, Any] = ListMap.empty    
-      var listOfDislikedNew: ListMap[String, Any] = ListMap.empty  
-      var listOfNeutralNew: ListMap[String, Any] = ListMap.empty  
-      implicit val formats = DefaultFormats   
+
+      var likedKey = filterKey_2 + underScore + liked
+      var dislikedKey = filterKey_2 + underScore + disliked
+      var neutralKey = filterKey_2 + underScore + neutral
+      val listOfLiked = redisCommands.zrevrange(likedKey, 0, 2).asScala.toList
+      val listOfDisliked = redisCommands.zrevrange(dislikedKey, 0, 2).asScala.toList
+      val listOfNeutral = redisCommands.zrevrange(neutralKey, 0, 2).asScala.toList
+      var listOfLikedNew: ListMap[String, Any] = ListMap.empty
+      var listOfDislikedNew: ListMap[String, Any] = ListMap.empty
+      var listOfNeutralNew: ListMap[String, Any] = ListMap.empty
+      implicit val formats = DefaultFormats
       for (idString <- listOfLiked) {
-       var hgetKey = idString +underScore +"data"
-       var getValue =  redisCommands.hget(hgetKey, likedKey)
-       val jValue = parse(getValue)
-       val getList = jValue.extract[FeedBackCaptureData]
-       listOfLikedNew += (getList.activity.toString+"_"+getList.count.toString-> getList)
-      } 
+        var hgetKey = idString + underScore + "data"
+        var getValue = redisCommands.hget(hgetKey, likedKey)
+        val jValue = parse(getValue)
+        val getList = jValue.extract[FeedBackCaptureData]
+        listOfLikedNew += (getList.activity.toString + "_" + getList.count.toString -> getList)
+      }
 
       for (idString <- listOfDisliked) {
-       var hgetKey = idString + underScore +"data"
-       var getValue =  redisCommands.hget(hgetKey, dislikedKey)
-       val jValue = parse(getValue)
-       val getList = jValue.extract[FeedBackCaptureData]
-       listOfDislikedNew += (getList.activity.toString+"_"+getList.count.toString-> getList)
-      } 
+        var hgetKey = idString + underScore + "data"
+        var getValue = redisCommands.hget(hgetKey, dislikedKey)
+        val jValue = parse(getValue)
+        val getList = jValue.extract[FeedBackCaptureData]
+        listOfDislikedNew += (getList.activity.toString + "_" + getList.count.toString -> getList)
+      }
 
       for (idString <- listOfNeutral) {
-       var hgetKey = idString + underScore +"data"
-       var getValue =  redisCommands.hget(hgetKey, neutralKey)
-       val jValue = parse(getValue)
-       val getList = jValue.extract[FeedBackCaptureData]
-       listOfNeutralNew += (getList.activity.toString+"_"+getList.count.toString-> getList)
-      } 
-      
-                   
-      resultMap += (liked-> listOfLikedNew)
-      resultMap += (disliked-> listOfDislikedNew)
-      resultMap += (neutral-> listOfNeutralNew)
+        var hgetKey = idString + underScore + "data"
+        var getValue = redisCommands.hget(hgetKey, neutralKey)
+        val jValue = parse(getValue)
+        val getList = jValue.extract[FeedBackCaptureData]
+        listOfNeutralNew += (getList.activity.toString + "_" + getList.count.toString -> getList)
+      }
+
+
+      resultMap += (liked -> listOfLikedNew)
+      resultMap += (disliked -> listOfDislikedNew)
+      resultMap += (neutral -> listOfNeutralNew)
       // println("--> res -->"+resultMap)
-            
+
       // var filterKey = initalString + underScore + userId_LevelId
       //
       sender ! GetFeedbackCaptureListResponse(resultMap)
@@ -1548,9 +1522,9 @@ class AdminActor() extends Actor {
         }
       }
 
-    case ReceiveTimeout =>  context.stop(self)
+    case ReceiveTimeout => context.stop(self)
   }
-  
+
   def randomString(len: Int): String = {
     val rand = new scala.util.Random(System.nanoTime)
     val sb = new StringBuilder(len)
@@ -1560,89 +1534,16 @@ class AdminActor() extends Actor {
     }
     sb.toString
   }
+
   def getDateStr(d: DateTime): String = {
-    d.getYear + "-" +getDoubeDigit(d.getMonthOfYear) + "-" + getDoubeDigit(d.getDayOfMonth)
+    d.getYear + "-" + getDoubleDigit(d.getMonthOfYear) + "-" + getDoubleDigit(d.getDayOfMonth)
   }
 
-  def getDoubeDigit(d: Int): String = {
+  def getDoubleDigit(d: Int): String = {
     "%02d".format(d)
   }
-  def timeStampToDateAndTime(d: String): String = {
-      var dateAndTime=""
-      var ds=d.toLong
-      val sDate = new DateTime(ds) 
-      var currentYear=sDate.getYear()
-      var currentMonth=getDoubeDigit(sDate.getMonthOfYear())
-      var currentDay=getDoubeDigit(sDate.getDayOfMonth())
-      var currentHour=sDate.getHourOfDay() 
-      var currentMinute=getDoubeDigit(sDate.getMinuteOfHour())
-      var currentMilliSeconds=getDoubeDigit(sDate.getSecondOfMinute())
-      var typeOfExt="AM" 
-      if(currentHour >= 12)
-      {
-      typeOfExt= "PM"
-        if(currentHour > 12)
-        {
-          currentHour=(currentHour.toInt-12)
-        }    
-      }
-      dateAndTime=currentYear+"-"+currentMonth+"-"+currentDay+","+currentHour +":"+currentMinute+":"+currentMilliSeconds+" "+typeOfExt
-      
-      dateAndTime
-  }
 
-   def getOSDetails(userAgent: String): String = {
-        var os="";
-        if (userAgent.toLowerCase.indexOf("windows") >= 0) {
-            os = "Windows"
-        } else if (userAgent.toLowerCase.indexOf("mac") >= 0) {
-            os = "Mac"
-        } else if (userAgent.toLowerCase.indexOf("x11") >= 0) {
-            os = "Unix"
-        } else if (userAgent.toLowerCase.indexOf("android") >= 0) {
-            os = "Android"
-        } else if (userAgent.toLowerCase.indexOf("iphone") >= 0) {
-            os = "IPhone"
-        } else {
-            os = "UnKnown, More-Info: " + userAgent
-        }
-
-         os
-    }
-
-    def getBrowserDetails(userAgent: String): String ={
-
-        var user = userAgent.toLowerCase;
-        var browser=""        
-        if (user.contains("msie")) {
-            var substring = userAgent.substring(userAgent.indexOf("MSIE")).split(";")(0)
-            browser = substring.split("\\s+")(0).replace("MSIE", "IE") + "-" + substring.split("\\s+")(1)
-        } else if (user.contains("safari") && user.contains("version")) {
-            browser = (userAgent.substring(userAgent.indexOf("Safari")).split("\\s+")(0)).split("/")(0) + "-" + (userAgent.substring(userAgent.indexOf("Version")).split("\\s+")(0)).split("/")(1)
-        } else if (user.contains("opr") || user.contains("opera")) {
-            if (user.contains("opera")){
-            browser = (userAgent.substring(userAgent.indexOf("Opera")).split("\\s+")(0)).split("/")(0) + "-" + (userAgent.substring(userAgent.indexOf("Version")).split("\\s+")(0)).split("/")(1)
-            }         
-            else if (user.contains("opr"))
-            {
-            browser = ((userAgent.substring(userAgent.indexOf("OPR")).split("\\s+")(0)).replace("/", "-")).replace("OPR", "Opera")
-            }               
-        } else if (user.contains("chrome")) {            
-            browser = (userAgent.substring(userAgent.indexOf("Chrome")).split("\\s+")(0)).replace("/", "-");
-        } else if ((user.indexOf("mozilla/7.0") > -1) || (user.indexOf("netscape6") != -1) || (user.indexOf("mozilla/4.7") != -1) || (user.indexOf("mozilla/4.78") != -1) || (user.indexOf("mozilla/4.08") != -1) || (user.indexOf("mozilla/3") != -1)) {
-            browser = "Netscape-?"
-
-        } else if (user.contains("firefox")) {
-            browser = (userAgent.substring(userAgent.indexOf("Firefox")).split("\\s+")(0)).replace("/", "-")
-        } else if (user.contains("rv")) {
-            browser = "IE-" + user.substring(user.indexOf("rv") + 3, user.indexOf(")"))
-        } else {
-            browser = "UnKnown, More-Info: " + userAgent
-        }
-         browser
-    }
-   
-   def checkIsNotEmpty(text: String): Boolean = {
+  def checkIsNotEmpty(text: String): Boolean = {
     var bool = false
     if (text != null && !text.isEmpty) {
       bool = true
