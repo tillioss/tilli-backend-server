@@ -151,7 +151,6 @@ class GenerateExcelSpec
       val excelFile = new File(s"${StarterMain.fileSystemPath}/excel/${userId}/${userId}.xls")
       excelFile.exists() shouldBe true
 
-      // Verify excel content
       val workbook = new HSSFWorkbook(new java.io.FileInputStream(excelFile))
       val sheet = workbook.getSheet("GenerateExcel")
 
@@ -230,7 +229,6 @@ class GenerateExcelSpec
   }
   """
 
-      // Fix: Use a properly formatted Chrome user agent string that will be correctly parsed
       val userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 
       val levelAttempt = LevelAttempt(
@@ -276,7 +274,6 @@ class GenerateExcelSpec
       sheet.getRow(1).getCell(1).getStringCellValue shouldBe userId
       sheet.getRow(2).getCell(1).getStringCellValue shouldBe "Windows"
 
-      // Fix: Update the expected browser string to match what getBrowserDetails actually returns
       sheet.getRow(3).getCell(1).getStringCellValue shouldBe "Chrome-91.0.4472.124"
 
       sheet.getRow(4).getCell(1).getStringCellValue shouldBe "email"
@@ -745,7 +742,6 @@ class GenerateExcelSpec
       when(mockRedisCommands.lrange(attemptKey, 0, -1))
         .thenReturn(java.util.Arrays.asList(attemptId))
 
-      // Fix: The test should expect "Mac" as output since the code checks for "mac" before "iphone"
       val iPhoneUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 14_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1"
       val levelAttempt = LevelAttempt(
         levelJson = """{"status":"complete","startTime":1704067200000,"endTime":1704070800000}""",
@@ -786,7 +782,6 @@ class GenerateExcelSpec
       val workbook = new HSSFWorkbook(new java.io.FileInputStream(excelFile))
       val sheet = workbook.getSheet("GenerateExcel")
 
-      // Fix: Update expectation to match the actual implementation behavior
       sheet.getRow(2).getCell(1).getStringCellValue shouldBe "Mac"
       sheet.getRow(3).getCell(1).getStringCellValue shouldBe "Safari-14.0.3"
       sheet.getRow(4).getCell(1).getStringCellValue shouldBe "social"
@@ -1098,8 +1093,6 @@ class GenerateExcelSpec
       val workbook = new HSSFWorkbook(new java.io.FileInputStream(excelFile))
       val sheet = workbook.getSheet("GenerateExcel")
 
-      // Check for "Story 1 Trust Circle" instead of "How do you feel?"
-      // since that's what the actual code is generating
       var found = false
       val lastRowNum = sheet.getLastRowNum
       for (i <- 10 to lastRowNum) {
