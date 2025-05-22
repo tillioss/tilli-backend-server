@@ -88,8 +88,16 @@ class StarterMainSpec extends TestKit(ActorSystem("StarterMainSpec"))
         "/tmp/test"
       )
 
-      StarterMain.main(args)
+      try {
+        StarterMain.main(args)
+      } catch {
+        case _: io.lettuce.core.RedisConnectionException =>
+        // This exception is expected if Redis is not running.
+        case e: Throwable =>
+          fail(s"StarterMain.main threw an unexpected exception: ${e.getMessage}", e)
+      }
 
+      // Assert that the variables were set correctly by parsing the arguments,
       StarterMain.envServer shouldBe "local"
       StarterMain.pekkoPort shouldBe 2552
       StarterMain.httpPort shouldBe 8092
