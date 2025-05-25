@@ -1,16 +1,12 @@
 package com.teqbahn.converter
 
-import java.awt.Color
-import java.awt.image.BufferedImage
-import java.io.{File, FileInputStream, FileNotFoundException, FileOutputStream, IOException, InputStream, OutputStream}
-import java.util
-
-import javax.imageio.IIOImage
-import javax.imageio.ImageIO
-import javax.imageio.ImageWriteParam
-import javax.imageio.ImageWriter
-import javax.imageio.stream.ImageOutputStream
 import org.apache.commons.io.FileUtils
+
+import java.awt.image.BufferedImage
+import java.io._
+import java.util
+import javax.imageio.{IIOImage, ImageIO, ImageWriteParam, ImageWriter}
+import javax.imageio.stream.ImageOutputStream
 
 object CompressImageFiles {
 
