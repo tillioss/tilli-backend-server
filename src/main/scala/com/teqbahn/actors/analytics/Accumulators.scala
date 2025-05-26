@@ -1,18 +1,17 @@
 package com.teqbahn.actors.analytics
 
-import org.apache.pekko.actor.SupervisorStrategy.Stop
-import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, PoisonPill, ReceiveTimeout}
 import com.teqbahn.bootstrap.StarterMain
 import com.teqbahn.bootstrap.StarterMain.redisCommands
-import com.teqbahn.caseclasses.{AccumulationDate, AddToAccumulationRequest, AddToAccumulationWrapper, AddToFilterAccumulationWrapper, AddUserAttemptAccumulationRequest, AddUserAttemptAccumulationWrapper, UpdateUserDetailsAccumulationRequest, User, UserAccumulation}
+import com.teqbahn.caseclasses._
 import com.teqbahn.global.ZiRedisCons
 import com.teqbahn.utils.ZiFunctions
-import org.json4s.NoTypeHints
+import org.apache.pekko.actor.{Actor, ActorSystem, ReceiveTimeout}
 import org.json4s.native.Serialization
+import org.json4s.{Formats, NoTypeHints}
 
 class Accumulators extends Actor {
-  var actorSystem = this.context.system
-  implicit val formats = Serialization.formats(NoTypeHints)
+  var actorSystem: ActorSystem = this.context.system
+  implicit val formats: AnyRef with Formats = Serialization.formats(NoTypeHints)
 
   override def preStart(): Unit = {
     ZiFunctions.printNodeInfo(self, "Accumulators Started")
@@ -30,7 +29,7 @@ class Accumulators extends Actor {
       StarterMain.accumulatorMonthActorRef ! AddToAccumulationWrapper(request, accumulationDate.month)
       StarterMain.accumulatorYearActorRef ! AddToAccumulationWrapper(request, accumulationDate.year)
 
-      if (request.accumulation != null && request.accumulation != None) {
+      if (request.accumulation != null && request.accumulation.isDefined) {
         val user: UserAccumulation = request.accumulation.get
         val age = user.ageOfChild
         val language = user.language

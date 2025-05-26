@@ -1,16 +1,15 @@
 package com.teqbahn.actors.analytics.accumulator
 
-import org.apache.pekko.actor.SupervisorStrategy.Stop
-import org.apache.pekko.actor.{Actor, ActorContext, ActorRef, PoisonPill, ReceiveTimeout}
 import com.teqbahn.bootstrap.StarterMain.redisCommands
 import com.teqbahn.caseclasses._
 import com.teqbahn.global.ZiRedisCons
-import org.json4s.NoTypeHints
+import org.apache.pekko.actor.{Actor, ActorSystem, ReceiveTimeout}
+import org.json4s.{Formats, NoTypeHints}
 import org.json4s.native.Serialization
 
 class FilterAccumulators extends Actor {
-  var actorSystem = this.context.system
-  implicit val formats = Serialization.formats(NoTypeHints)
+  var actorSystem: ActorSystem = this.context.system
+  implicit val formats: AnyRef with Formats = Serialization.formats(NoTypeHints)
 
   def receive: Receive = {
     case request: AddToFilterAccumulationWrapper =>
@@ -18,7 +17,7 @@ class FilterAccumulators extends Actor {
       val accumulationRequest: AddToAccumulationRequest = request.accumulator
       val dataType = accumulationRequest.dataType
       if (dataType != null && dataType.equalsIgnoreCase("User")) {
-        if (accumulationRequest.accumulation != None && accumulationRequest.accumulation != null) {
+        if (accumulationRequest.accumulation.isDefined && accumulationRequest.accumulation != null) {
           val user: UserAccumulation = accumulationRequest.accumulation.get
           val age = user.ageOfChild
           val language = user.language
@@ -125,7 +124,4 @@ class FilterAccumulators extends Actor {
 
     case ReceiveTimeout =>  context.stop(self)
   }
-
-
-
 }
